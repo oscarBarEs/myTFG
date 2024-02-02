@@ -45,72 +45,17 @@ pl = pv.Plotter()
 # VTK pipeline
 # -----------------------------------------------------------------------------
 #actor = readMesh() # en meshReader.py
-global mapper_heart 
-global actor 
-global ren
-mapper_heart = vtkDataSetMapper()
-actor = vtkActor()
-ren = vtkRenderer()
 
-"""def change_Data_Array_Representation(i):
-    default_array = dataset_arrays[i]
-    # Mesh: Color by default array
-    mapper_heart.SelectColorArray(default_array.get("text"))
-    print(default_array.get("text"))
-    mapper_heart.GetLookupTable().SetRange(default_min, default_max)
-    if default_array.get("type") == vtkDataObject.FIELD_ASSOCIATION_POINTS:
-        mapper_heart.SetScalarModeToUsePointFieldData()
-    else:
-        mapper_heart.SetScalarModeToUseCellFieldData()"""
-"""
-unstructuredGridPort,ventricle_Tagged, arrayNames,dataset_arrays = readVTKMesh() # en meshReader.py
-default_array = dataset_arrays[10]
-default_min, default_max = default_array.get("range")
+mesh = pv.read("Resources/info/ventricle_Tagged.vtk")
+actor = pl.add_mesh(mesh)
+pl.view_xy()
 
-mapper_heart.SetInputConnection(unstructuredGridPort)
-
-actor.SetMapper(mapper_heart)
-
-# Create a rendering window and renderer
-
-renWin = vtkRenderWindow()
-renWin.AddRenderer(ren)
-renWin.SetWindowName('ReadSTL')
-
-# Assign actor to the renderer
-ren.AddActor(actor)"""
-pyvista_actor = pv.read("Resources/info/ventricle_Tagged.vtk")
-pl.add_mesh(pyvista_actor)
 # Mesh: Setup default representation to surface
-"""actor.GetProperty().SetRepresentationToSurface()
-actor.GetProperty().SetPointSize(1)
-actor.GetProperty().EdgeVisibilityOff()
-# Mesh: Apply rainbow color map
-mesh_lut = mapper_heart.GetLookupTable()
-mesh_lut.SetHueRange(0.666, 0.0)
-mesh_lut.SetSaturationRange(1.0, 1.0)
-mesh_lut.SetValueRange(1.0, 1.0)
-mesh_lut.Build()
-
-change_Data_Array_Representation(10)
-
-mapper_heart.SetScalarVisibility(True)
-mapper_heart.SetUseLookupTableScalarRange(True)
-
-colors = vtkNamedColors()
-ren.SetBackground(colors.GetColor3d('DarkOliveGreen'))
-
-renWin.Render()"""
-
-# -----------------------------------------------------------------------------
-# functions
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-# Trame
-# -----------------------------------------------------------------------------
-
-      
+"""    @change("scalars")
+    def set_scalars(scalars=mesh.active_scalars_name, **kwargs):
+        actor.mapper.array_name = scalars
+        actor.mapper.scalar_range = mesh.get_data_range(scalars)
+        ctrl.view_update()"""     
 # -----------------------------------------------------------------------------
 # Main Page
 # -----------------------------------------------------------------------------
@@ -127,6 +72,11 @@ class App_Hearth_Helper:
     @life_cycle.server_ready
     def reload_ui(self, *args, **kwargs):
         self.ui = self._build_ui()
+    @change("scalars")
+    def set_scalars(scalars=mesh.active_scalars_name, **kwargs):
+        actor.mapper.array_name = scalars
+        actor.mapper.scalar_range = mesh.get_data_range(scalars)
+        ctrl.view_update()
 
 
     def _build_ui(self):
@@ -144,10 +94,9 @@ class App_Hearth_Helper:
                         classes="pa-0 fill-height",
                         height="100%",
                     ):
-                        plotly_graph_vuetify()
-                        #view = vtk.VtkLocalView(renWin)
+                        #plotly_graph_vuetify()
                         view = plotter_ui(pl)
-                #self.ctrl.view_update = view.update                
+                        self.ctrl.view_update = view.update                
                 #self.ctrl.on_server_ready.add(view.update)
 
 
@@ -158,16 +107,21 @@ class App_Hearth_Helper:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard():
-                    vuetify.VSelect(multiple=False,items=("representations",list(pyvista_actor.point_data.keys())),
-                    value=dataset_arrays[2].get("text") )
+                    vuetify.VSelect(
+                        label="Scalars",
+                        v_model=("scalars", mesh.active_scalars_name),
+                        items=("array_list", list(mesh.point_data.keys())),
+                        hide_details=True,
+                        dense=True,
+                        outlined=True,
+                        classes="pt-1 ml-2",
+                        style="max-width: 250px",
+                    )                    
                     vuetify.VDataTable(**table_of_simulation('output.json'))
                     vuetify.VCardText(children=["This is a heart mesh"])
 
         return layout
 
-"""    def update_mesh_representation(value):
-        change_Data_Array_Representation(value)
-        self.ctrl.view_update()"""
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------

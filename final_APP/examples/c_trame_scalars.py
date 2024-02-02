@@ -18,7 +18,8 @@ pv.OFF_SCREEN = True
 server = get_server()
 state, ctrl = server.state, server.controller
 
-mesh = examples.download_antarctica_velocity()
+#mesh = examples.download_antarctica_velocity()
+mesh = pv.read("./Resources/info/ventricle_Tagged.vtk")
 
 pl = pv.Plotter()
 actor = pl.add_mesh(mesh)
