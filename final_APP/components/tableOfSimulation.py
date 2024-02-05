@@ -34,7 +34,9 @@ def selection_change_tos(selection=[], **kwargs):
     # Filter the DataFrame to only include rows where the 'Id's Reen' value is in selection
     filtered_data =  pd.DataFrame(selection)
     if filtered_data.empty:
-        return alt.Chart(pd.DataFrame()).mark_bar().encode(
+        grouped_data = DATA_FRAME.groupby('Segmentos Reen').size().reset_index(name='counts')
+
+        return alt.Chart(grouped_data).mark_bar().encode(
             x='Segmentos Reen:O',
             y='counts:Q'
         ).properties(width='container', height=100)
