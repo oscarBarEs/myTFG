@@ -4,5 +4,6 @@ DATA_FRAME = None
 
 def fetch_data(location):
     global DATA_FRAME
-    DATA_FRAME = pd.read_json(location)
+    data = pd.read_json(location)
+    DATA_FRAME = pd.DataFrame(data)
     return DATA_FRAME

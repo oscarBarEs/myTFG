@@ -1,14 +1,18 @@
 
 from components.fromJsonToTable import fetch_data
 from trame.widgets import vuetify2 as vuetify
+import pandas as pd
+import altair as alt
 # -----------------------------------------------------------------------------
 # DATA FRAME 'output.json'
 # -----------------------------------------------------------------------------
+DATA_FRAME = None
 
 def table_of_simulation(json_file):
-    header_options = {}  # Define your header options here
+    header_options = {"Id's Reen": {"sortable": False}}  # Define your header options here
 
-    DATA_FRAME = fetch_data(json_file) # en FromJsonToTable.py
+    global DATA_FRAME 
+    DATA_FRAME= fetch_data(json_file) # en FromJsonToTable.py
     headers, rows = vuetify.dataframe_to_grid(DATA_FRAME, header_options)
 
     table = {
@@ -20,7 +24,36 @@ def table_of_simulation(json_file):
         "multi_sort": True,
         "dense": True,
         "show_select": True,
-        "single_select": True,
+        "single_select": False,
         "item_key": "id",
     }
     return table
+
+def selection_change_tos(selection=[], **kwargs):
+    global DATA_FRAME
+    # Filter the DataFrame to only include rows where the 'Id's Reen' value is in selection
+    filtered_data =  pd.DataFrame(selection)
+    if filtered_data.empty:
+        return alt.Chart(pd.DataFrame()).mark_bar().encode(
+            x='Segmentos Reen:O',
+            y='counts:Q'
+        ).properties(width='container', height=100)
+
+    grouped_data = filtered_data.groupby('Segmentos Reen').size().reset_index(name='counts')
+
+    # Chart
+    chart = alt.Chart(grouped_data).mark_bar().encode(
+        x='Segmentos Reen:O',
+        y='counts:Q'
+    ).properties(width='container', height=100)
+    
+    return chart
+
+def chart_onset_pacing(selection=[], **kwargs):
+    global DATA_FRAME
+    chart = alt.Chart(DATA_FRAME).mark_point().encode(
+        x='Segmento AHA onset:Q',
+        y='Segmento AHA pacing:Q'
+    ).properties(width='container', height=100)
+    
+    return chart

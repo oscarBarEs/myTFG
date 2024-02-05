@@ -32,6 +32,12 @@ class App_Hearth_Helper:
         self.state = self.server.state
         self.ui = self._build_ui()
 
+    @change("log_scale")
+    def set_log_scale(log_scale=False, **kwargs):
+        print("log_scale", log_scale)
+        actor.mapper.lookup_table.log_scale = log_scale
+        ctrl.view_update()
+
     @change("scalars")
     def set_scalars(scalars=mesh.active_scalars_name, **kwargs):
         actor.mapper.array_name = scalars
@@ -39,11 +45,7 @@ class App_Hearth_Helper:
         ctrl.view_update()
 
 
-    @change("log_scale")
-    def set_log_scale(log_scale=False, **kwargs):
-        print("log_scale", log_scale)
-        actor.mapper.lookup_table.log_scale = log_scale
-        ctrl.view_update()
+
 
     def _build_ui(self):
         with SinglePageWithDrawerLayout(server) as layout:

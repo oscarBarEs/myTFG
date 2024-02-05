@@ -26,7 +26,6 @@ from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
 CURRENT_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
-pv.OFF_SCREEN = True
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
