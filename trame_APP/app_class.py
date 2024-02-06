@@ -8,11 +8,12 @@ from trame.app import get_server
 from trame.app.file_upload import ClientFile
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
-from trame.widgets import vuetify2 as vuetify
+from trame.widgets import vuetify2 as vuetify, vega
 
 from trame.decorators import TrameApp, change, life_cycle
 
-from components.tableOfSimulation import table_of_simulation
+from components.tableOfSimulation import table_of_simulation, selection_change_tos, chart_onset_pacing, full_chart
+from components.utils.txtToJson import fetch_data
 #from components.page.header import header
 
 pv.OFF_SCREEN = True
@@ -46,12 +47,14 @@ class App_Hearth_Helper:
     @property
     def actor(self):
         return self._actor
+    @property
+    def data(self):
+        return self._data
 
-    @change("file_exchange")
-    def handle(self,file_exchange, **kwargs):
-        file = ClientFile(file_exchange)
+    @change("heart_file_exchange")
+    def handle(self,heart_file_exchange, **kwargs):
+        file = ClientFile(heart_file_exchange)
         if file.content:
-            print(file.info)
             bytes = file.content
             with tempfile.NamedTemporaryFile(suffix=file.name) as path:
                 with open(path.name, 'wb') as f:
@@ -64,7 +67,12 @@ class App_Hearth_Helper:
         else:
             self.pl.clear_actors()
             self.pl.reset_camera()  
-
+    @change("data_file_exchange")
+    def handle_data(self,data_file_exchange, **kwargs):
+        file = ClientFile(data_file_exchange)
+        if file.content:
+            self._data = fetch_data(file.name)
+            self._update_UI()
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
         if  hasattr(self, "_actor"):
@@ -87,7 +95,16 @@ class App_Hearth_Helper:
         vuetify.VSpacer()
         with vuetify.VBtn(children=[], text=True, color="primary", class_="title"):
             vuetify.VIcon("mdi-heart-pulse",size="24")
-
+        vuetify.VFileInput(
+            show_size=True,
+            small_chips=True,
+            truncate_length=25,
+            v_model=("heart_file_exchange", None),
+            dense=True,
+            hide_details=True,
+            style="max-width: 300px;",
+        )
+        vuetify.VSpacer()
         with vuetify.VBtn(text=True, color="primary", class_="title"):
             vuetify.VIcon("mdi-file-chart",size="24")
 
@@ -95,11 +112,12 @@ class App_Hearth_Helper:
             show_size=True,
             small_chips=True,
             truncate_length=25,
-            v_model=("file_exchange", None),
+            v_model=("data_file_exchange", None),
             dense=True,
             hide_details=True,
             style="max-width: 300px;",
         )
+
         vuetify.VSpacer()
 
         with vuetify.VBtn(icon=True):
@@ -132,12 +150,8 @@ class App_Hearth_Helper:
             with layout.toolbar:
                 self.header()
             with layout.content:
-                with vuetify.VContainer(
-                    fluid=True,
-                    classes="pa-0 fill-height",
-                ):
-                    # Use PyVista UI template for Plotters
-                    self.main_page()
+                # Use PyVista UI template for Plotters
+                self.main_view()
             with layout.drawer as drawer:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
@@ -150,11 +164,17 @@ class App_Hearth_Helper:
                         outlined=True,
                     )
                     self.scalar_dropdown()
-                    vuetify.VDataTable(**table_of_simulation('output.json'))
+                    self.draw_table()
                     vuetify.VCardText(children=["This is a heart mesh"])
         return layout
-    
-    def main_page(self):
+    def draw_table(self):
+        if  hasattr(self, "_data"):
+            with vuetify.VContainer(classes="justify-left ma-6") as container:
+                vuetify.VDataTable(**table_of_simulation(self.data))
+                fig = vega.Figure(classes="ma-2", style="width: 100%;")
+                self.ctrl.fig_update = fig.update
+            return vuetify.VDataTable(**table_of_simulation(self.data))
+    def main_view(self):
         if  hasattr(self, "_actor"):
             with vuetify.VContainer(fluid=True, classes="pa-0 fill-height") as container:
                 view = plotter_ui(self.pl)

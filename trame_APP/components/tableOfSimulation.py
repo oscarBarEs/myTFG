@@ -51,6 +51,14 @@ def selection_change_tos(selection=[], **kwargs):
     
     return chart
 
+def full_chart(_data):
+    current_data = pd.DataFrame(_data)
+    grouped_data = current_data.groupby('Segmentos Reen').size().reset_index(name='counts')
+    return alt.Chart(grouped_data).mark_bar().encode(
+        x='Segmentos Reen:O',
+        y='counts:Q'
+    ).properties(width='container', height=100)    
+
 def chart_onset_pacing(selection=[], **kwargs):
     global DATA_FRAME
     chart = alt.Chart(DATA_FRAME).mark_point().encode(
