@@ -1,8 +1,9 @@
 import dash
 import dash_vtk
-from dash_vtk.utils import to_mesh_state
-import dash_html_components as html
-import dash_core_components as dcc
+import vtk
+
+from dash_vtk.utils import to_mesh_state,to_volume_state
+from dash import dcc,html
 from dash.dependencies import Input, Output, State
 
 import numpy as np
@@ -10,12 +11,17 @@ import pyvista as pv
 from pyvista import examples
 
 np.random.seed(42)
+heart_filename = "ventricle_Tagged.vtk"
+
+"""HeartReader = vtk.vtkXMLUnstructuredGridReader()
+HeartReader.SetFileName(heart_filename)
+HeartReader.Update()"""
 
 # Get point cloud data from PyVista
 dataset = examples.download_lidar()
-dataset = pv.read("ventricle_Tagged.vtk")
+dataset = pv.read(heart_filename)
 mesh_state = to_mesh_state(dataset)
-
+# print(mesh_state.point_data.keys())
 subset = 0.2
 selection = np.random.randint(
     low=0, high=dataset.n_points - 1, size=int(dataset.n_points * subset)
@@ -32,13 +38,33 @@ print(f"Elevation range: [{min_elevation}, {max_elevation}]")
 app = dash.Dash(__name__)
 server = app.server
 
-vtk_view = dash_vtk.View(
-    [
-        dash_vtk.GeometryRepresentation([
-        dash_vtk.Mesh(state=mesh_state)
-    ])
-    ]
-)
+vtk_view = dash_vtk.View([
+    dash_vtk.GeometryRepresentation([
+        dash_vtk.Mesh(id='mesh', state=mesh_state),  # replace 'ArrayName' with the name of your scalar array
+    ]),
+])
+vtk_view = dash_vtk.View([
+    dash_vtk.VolumeRepresentation([
+        # GUI to control Volume Rendering
+        # + Setup good default at startup
+        dash_vtk.VolumeController(),
+        # Actual Imagedata
+        dash_vtk.ImageData(
+            dimensions=[5, 5, 5],
+            origin=[-2, -2, -2],
+            spacing=[1, 1, 1],
+            children=[
+                dash_vtk.PointData([
+                    dash_vtk.DataArray(
+                        registration="setScalars",
+                        values=list(range(5*5*5)),
+                    )
+                ])
+            ],
+        ),
+    ]),
+])
+
 
 app.layout = html.Div(
     style={"height": "calc(100vh - 16px)"},
