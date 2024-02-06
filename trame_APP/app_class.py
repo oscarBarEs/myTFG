@@ -50,7 +50,6 @@ class App_Hearth_Helper:
     @change("file_exchange")
     def handle(self,file_exchange, **kwargs):
         file = ClientFile(file_exchange)
-
         if file.content:
             print(file.info)
             bytes = file.content
@@ -86,6 +85,12 @@ class App_Hearth_Helper:
     
     def header(self):         
         vuetify.VSpacer()
+        with vuetify.VBtn(children=[], text=True, color="primary", class_="title"):
+            vuetify.VIcon("mdi-heart-pulse",size="24")
+
+        with vuetify.VBtn(text=True, color="primary", class_="title"):
+            vuetify.VIcon("mdi-file-chart",size="24")
+
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -106,6 +111,9 @@ class App_Hearth_Helper:
             v_model="$vuetify.theme.dark",
             hide_details=True,
             dense=True,
+        )
+        vuetify.VProgressLinear(
+            indeterminate=True, absolute=True, bottom=True, active=("trame__busy",)
         )
     def scalar_dropdown(self):
         if  hasattr(self, "_mesh"):
@@ -129,23 +137,34 @@ class App_Hearth_Helper:
                     classes="pa-0 fill-height",
                 ):
                     # Use PyVista UI template for Plotters
-                    view = plotter_ui(self.pl)
-                    self.ctrl.view_update = view.update
-                    with layout.drawer as drawer:
-                        drawer.width = "40%"
-                        vuetify.VDivider(classes="mb-2")
-                        with vuetify.VCard():
-                            vuetify.VCheckbox(
-                                label="Log Scale",
-                                v_model=("log_scale", False),
-                                hide_details=True,
-                                dense=True,
-                                outlined=True,
-                            )
-                            self.scalar_dropdown()
-                            vuetify.VDataTable(**table_of_simulation('output.json'))
-                            vuetify.VCardText(children=["This is a heart mesh"])
-        return layout       
+                    self.main_page()
+            with layout.drawer as drawer:
+                drawer.width = "40%"
+                vuetify.VDivider(classes="mb-2")
+                with vuetify.VCard():
+                    vuetify.VCheckbox(
+                        label="Log Scale",
+                        v_model=("log_scale", False),
+                        hide_details=True,
+                        dense=True,
+                        outlined=True,
+                    )
+                    self.scalar_dropdown()
+                    vuetify.VDataTable(**table_of_simulation('output.json'))
+                    vuetify.VCardText(children=["This is a heart mesh"])
+        return layout
+    
+    def main_page(self):
+        if  hasattr(self, "_actor"):
+            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height") as container:
+                view = plotter_ui(self.pl)
+        else:
+            vuetify.VCardText(children=["Add a heart file to start"])
+            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height",style="display:none") as container:
+                view = plotter_ui(self.pl)
+        self.ctrl.view_update = view.update
+
+        return container
 
 def main():
     app = App_Hearth_Helper()
