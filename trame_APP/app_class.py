@@ -26,11 +26,14 @@ class App_Hearth_Helper:
 
 
     def __init__(self,name=None,  table_size=10):
-        self.server = get_server(name, client_type="vue2")   
-           
+
+        self.server = get_server(name, client_type="vue2")  
+        self.state.changing_page = False
+        self.ctrl.change_page = self.change_page
+        
+        self.isPage=True
         self.pl
-        self._page_heart = True
-        self._page_data = False
+
         self._has_heart = False 
         self.ui = self._build_ui()
         
@@ -39,6 +42,7 @@ class App_Hearth_Helper:
         return self.server.controller
     @property
     def state(self):
+        
         return self.server.state
 
     @property
@@ -56,7 +60,11 @@ class App_Hearth_Helper:
     @property
     def data(self):
         return self._data
-
+    @property
+    def view(self):
+        if not hasattr(self, "_view"):
+            self._view = plotter_ui(self.pl)
+        return self._view
     @change("heart_file_exchange")
     def handle(self,heart_file_exchange, **kwargs):
         file = ClientFile(heart_file_exchange)
@@ -71,8 +79,6 @@ class App_Hearth_Helper:
             if(type(self._mesh).__name__ == "UnstructuredGrid"):
                 self._actor = self.pl.add_mesh(ds, name=file.name)
                 cell_center = self.mesh.cell_centers().points[0]
-                arrow = vtk.vtkConeSource()
-                arrow_mesh = self.pl.add_mesh(arrow, color="red")
             else:
                 self.pl.add_mesh(ds, name=file.name)
 
@@ -102,38 +108,33 @@ class App_Hearth_Helper:
             self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
             self.ctrl.view_update()
 
-    @change("page_heart_visibility")
-    def set_page_heart(self,page_heart_visibility, **kwargs):
-        self._page_heart = page_heart_visibility
-        self._page_data = not page_heart_visibility
-        self.ui = self._update_UI()
 
-    @change("page_chart_visibility")
-    def set_page_data(self,page_chart_visibility, **kwargs):
-        self._page_data = page_chart_visibility
-        self._page_heart = not page_chart_visibility
+    @change("changing_page")
+    def set_changing_page(self,changing_page, **kwargs):
+        print("changing_page")
+        
+    def change_page(self):
+        print("change UI")
         self.ui = self._update_UI()
-
+    
     def _build_ui(self):
        return self._update_UI()
     
     def header(self):         
         vuetify.VSpacer()
+        vuetify.VIcon("mdi-file-chart")
+        vuetify.VSwitch(
+            v_model=("changing_page",self.state.changing_page),
+            click=self.change_page,
+            hide_details=True,
+            dense=True,
+            
+        )
+        vuetify.VIcon("mdi-heart-settings")
+        vuetify.VSpacer()
 
-        vuetify.VCheckbox(
-        v_model=("page_heart_visibility", self._page_data),
-        on_icon="mdi-heart-settings",
-        off_icon="mdi-heart-settings-outline",
-        classes="mx-1",
-        hide_details=True,
-        dense=True,
-        value=self._page_heart
-        )
-        vuetify.VBtn(
-            icon="mdi-heart-settings",
-            classes="mx-1",
-        )
-      
+        #FILE
+        vuetify.VIcon("mdi-heart-settings")
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -144,16 +145,8 @@ class App_Hearth_Helper:
             style="max-width: 300px;",
         )
         vuetify.VSpacer()
-
-        vuetify.VCheckbox(
-        v_model=("page_chart_visibility", self._page_heart),
-        on_icon="mdi-file-chart",
-        off_icon="mdi-file-chart-outline",
-        classes="mx-1",
-        hide_details=True,
-        dense=True,
-        value=self._page_data
-    )  
+        #FILE
+        vuetify.VIcon("mdi-file-chart")
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -215,23 +208,25 @@ class App_Hearth_Helper:
                     dense=True,
                     outlined=True,
                 )
-        if  hasattr(self, "_data"):
-            with vuetify.VContainer(classes="justify-left ma-6") as container:
+
+    def main_view(self):
+
+        if  (hasattr(self, "_data") and self.state.changing_page):
+            with vuetify.VContainer(classes="justify-left ma-6",v_show=(not self.state.changing_page)) as container:
                 """fig = vega.Figure(classes="ma-2", style="width: 100%;")
                 self.ctrl.fig_update = fig.update"""
-            return vuetify.VDataTable(**table_of_simulation(self.data))
-    def main_view(self):
-        if  hasattr(self, "_actor"):
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height") as container:
-                view = plotter_ui(self.pl)
-                self.ctrl.view_update = view.update
+                vuetify.VDataTable(**table_of_simulation(self.data))
+                return container
         else:
-            vuetify.VCardText(children=["Add a heart file to start"])
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height",style="display:none") as container:
-                view = plotter_ui(self.pl)
-                self.ctrl.view_update = view.update
+            vuetify.VCardText(children=["Add a data file to start"],v_show=(not self.state.changing_page))
 
-        return container
+        if hasattr(self, "_actor"):
+            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height",v_show=(self.state.changing_page)) as container:
+                view = self.view
+                self.ctrl.view_update = view.update    
+            return container
+        else:
+            vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page))
 @TrameApp()
 class App_show_Helper:
     def __init__(self,pl):
