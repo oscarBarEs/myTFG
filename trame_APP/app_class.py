@@ -124,11 +124,11 @@ class App_Hearth_Helper:
         vuetify.VSpacer()
         vuetify.VIcon("mdi-file-chart")
         vuetify.VSwitch(
-            v_model=("changing_page",self.state.changing_page),
+            v_model=("changing_page"),
             click=self.change_page,
             hide_details=True,
             dense=True,
-            
+
         )
         vuetify.VIcon("mdi-heart-settings")
         vuetify.VSpacer()
@@ -209,35 +209,27 @@ class App_Hearth_Helper:
                     outlined=True,
                 )
 
-    def main_view(self):
-
-        if  (hasattr(self, "_data") and self.state.changing_page):
+    def draw_chart(self):
+        if  (hasattr(self, "_data")):
             with vuetify.VContainer(classes="justify-left ma-6",v_show=(not self.state.changing_page)) as container:
                 """fig = vega.Figure(classes="ma-2", style="width: 100%;")
                 self.ctrl.fig_update = fig.update"""
                 vuetify.VDataTable(**table_of_simulation(self.data))
-                return container
+                
         else:
-            vuetify.VCardText(children=["Add a data file to start"],v_show=(not self.state.changing_page))
+                vuetify.VCardText(children=["Add a data file to start"],v_show=(not self.state.changing_page))
+
+    def main_view(self):
+
+        self.draw_chart()
 
         if hasattr(self, "_actor"):
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height",v_show=(self.state.changing_page)) as container:
-                view = self.view
+            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):
+                print("pl")
+                view = plotter_ui(self.pl)
                 self.ctrl.view_update = view.update    
-            return container
         else:
             vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page))
-@TrameApp()
-class App_show_Helper:
-    def __init__(self,pl):
-        self.pl=pl    
-        self.ui = self._build_ui()
-
-    def _build_ui(self):
-        with vuetify.VContainer(fluid=True, classes="pa-0 fill-height") as container:
-            view = plotter_ui(self.pl)
-            self.ctrl.view_update = view.update
-
 
 def main():
     app = App_Hearth_Helper()
