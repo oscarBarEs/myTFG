@@ -1,6 +1,8 @@
 import dash
 import dash_vtk
 from dash import html, dcc
+import dash_bootstrap_components as dbc
+
 from dash.dependencies import Input, Output, State
 from dash_vtk.utils import to_mesh_state
 import numpy as np
@@ -42,23 +44,30 @@ vtk_view = dash_vtk.View(
     ]
 )
 
-app.layout = html.Div(
-    style={"height": "calc(100vh - 16px)"},
-    children=[
-        html.Div(style={"height": "100%", "width": "100%"}
-                 ,children=[
-                     html.Div(vtk_view,style={"height": "100%", "width": "100%"}),
-                        html.Div(
-                            dcc.Slider(
-                                min=5,
-                                max=100,
-                                step=0.1,
-                                vertical=True
-                            ),
-                            style={"position": "absolute", "top": "0", "right": "0", "height": "100%", "width": "50px"}
-                        )
+app.layout = dbc.Container(
+    fluid=True,
+    style={"height": "100vh"},
+    children=[        
+        dbc.Row(                
+            dbc.Col(
+                    children=dcc.Slider(
+                        id="scale-factor",
+                        min=4,
+                        max=25,
+                        step=1,
+                        value=1,
+                        marks={4: "4", 25: "25"},
+                    )
+                )),
+            
+                html.Div(
+                    html.Div(vtk_view, style={"height": "100%", "width": "100%"}),
+                    style={"height": "88%"},
+                )
+            
+        
 
-        ])],
+        ]
 )
 
 if __name__ == "__main__":
