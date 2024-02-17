@@ -14,6 +14,7 @@ B --> D[Interfaz web 2D]
 C --> D
 D --> E[Vuetify]
 D --> F[HTML]
+E <--> F
 E --> G[Renders]
 F --> G
 G --> H[Trame]
