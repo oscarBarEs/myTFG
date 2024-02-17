@@ -1,8 +1,9 @@
 
 # myTFG
 
-Current version:
+Current version is App_Class, however PyVista currently not working with Trame due to vue3 servers:
 
-> cd trame_App
-
-> python3 app_class.py
+```console
+    cd trame_App
+    python3 app_class.py
+```
