@@ -1,20 +1,20 @@
 # State of the Art
 
-Para realizar la aplicacion necesitaremos 3 componentes:
+To make the Web page we will need:
 
-- Las *apis graficas* para renderizar los objetos vtk
-- Las *Librerias graficas* para visualizar la web
-- Los *renders* para montar la aplicación
+- The *graphic apis* to render the vtks
+- The *graphic 2d Lybraries* to visualize the page
+- The *renders* to generate the app
 
 ```mermaid
 graph LR
-A[APIs Graficas] --> B[VTK]
-A -- No funciona actualmente con Trame --> C[Pyvista]
-B --> D[Interfaz web 2D]
+A[graphic APIs] --> B[VTK]
+A -- Currently not working with Trame --> C[Pyvista]
+B --> D[Web Interface 2D]
 C --> D
 D --> E[Vuetify]
 D --> F[HTML]
-E <--> F
+F <--> E
 E --> G[Renders]
 F --> G
 G --> H[Trame]
