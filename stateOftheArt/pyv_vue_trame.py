@@ -9,9 +9,10 @@ pv.OFF_SCREEN = True
 server = get_server()
 state, ctrl = server.state, server.controller
 
-mesh = pv.Wavelet()
+
 
 pl = pv.Plotter()
+mesh = pv.Wavelet()
 actor = pl.add_mesh(mesh)
 
 
