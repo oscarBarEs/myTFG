@@ -10,7 +10,7 @@ from trame.app import get_server
 from trame.app.file_upload import ClientFile
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
-from trame.widgets import vuetify2 as vuetify, vega
+from trame.widgets import vuetify2 as vuetify, vega, vtk as vtkTrame
 
 from trame.decorators import TrameApp, change, life_cycle
 
@@ -222,13 +222,14 @@ class App_Hearth_Helper:
     def main_view(self):
 
         self.draw_chart()
+        
+        with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):
+             
+            print("pl")
+            view = plotter_ui(self.pl)
+            self.ctrl.view_update = view.update
 
-        if hasattr(self, "_actor"):
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):
-                print("pl")
-                view = plotter_ui(self.pl)
-                self.ctrl.view_update = view.update    
-        else:
+        if not hasattr(self, "_actor"):
             vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page))
 
 def main():
