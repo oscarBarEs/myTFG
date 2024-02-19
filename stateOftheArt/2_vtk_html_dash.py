@@ -1,6 +1,6 @@
 import dash
 import dash_vtk
-from dash import html, dcc
+from dash import html, dcc,Input, Output, callback
 import dash_bootstrap_components as dbc
 
 from dash.dependencies import Input, Output, State
@@ -36,7 +36,7 @@ server = app.server
 vtk_view = dash_vtk.View(
     [
         dash_vtk.GeometryRepresentation([
-            dash_vtk.Mesh(state=mesh_state)]
+            dash_vtk.Mesh(id="my-cone",state=mesh_state)]
         )
         
     ]
@@ -50,11 +50,11 @@ app.layout = dbc.Container(
             dbc.Col(
                     children=dcc.Slider(
                         id="scale-factor",
-                        min=4,
-                        max=25,
+                        min=3,
+                        max=50,
                         step=1,
-                        value=1,
-                        marks={4: "4", 25: "25"},
+                        value=6,
+                        marks={3: "3", 25: "25"},
                     )
                 )),
             
@@ -67,6 +67,17 @@ app.layout = dbc.Container(
 
         ]
 )
+
+@callback(
+    Output("my-cone", 'state'),
+    Input("scale-factor", 'value')
+)
+def update_mesh(scale_factor):
+
+    mesh = pv.Cone(resolution=scale_factor)
+    grid = mesh.cast_to_unstructured_grid()
+    mesh_state = to_mesh_state(grid)
+    return mesh_state
 
 if __name__ == "__main__":
     app.run_server(debug=True)
