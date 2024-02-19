@@ -15,8 +15,8 @@ C --> D
 D --> E[Vuetify]
 D --> F[HTML]
 D --> L[Bootsrap]
-F --> L
 F <--> E
+F <--> L
 E --> G[Renders]
 F --> G
 G --> H[Trame]
