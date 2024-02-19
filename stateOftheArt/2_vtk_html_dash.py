@@ -13,9 +13,7 @@ np.random.seed(42)
 
 # Get point cloud data from PyVista
 mesh = pv.Cone()
-type(mesh)
 grid = mesh.cast_to_unstructured_grid()
-type(grid)
 dataset = grid
 mesh_state = to_mesh_state(dataset)
 #dataset = examples.download_lidar()

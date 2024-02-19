@@ -220,7 +220,7 @@ class App_Hearth_Helper:
                 vuetify.VCardText(children=["Add a data file to start"],v_show=(not self.state.changing_page))
 
     def main_view(self):
-
+        vuetify.VCardText(children=["PRUEBA"],v_show=("{ changing_page }"))
         self.draw_chart()
         
         with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):
