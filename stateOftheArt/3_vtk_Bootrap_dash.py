@@ -4,6 +4,7 @@ import dash
 import dash_vtk
 from dash import html, dcc,Input, Output, callback
 import dash_bootstrap_components as dbc
+from dash_bootstrap_templates import ThemeSwitchAIO
 
 from dash.dependencies import Input, Output, State
 from dash_vtk.utils import to_mesh_state
@@ -33,9 +34,14 @@ print(f"Elevation range: [{min_elevation}, {max_elevation}]")
 
 # Setup VTK rendering of PointCloud
 
+app = dash.Dash(__name__,external_stylesheets=[dbc.themes.CYBORG])
 app = dash.Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 server = app.server
+url_theme1 = dbc.themes.SKETCHY
+url_theme2 = dbc.themes.DARKLY
+theme_switch = ThemeSwitchAIO(aio_id="theme", themes=[url_theme1, url_theme2])
+
 
 vtk_view = dash_vtk.View(
     [
@@ -51,17 +57,18 @@ app.layout = dbc.Container(
     style={"height": "100vh"},
     children=[        
         dbc.Row(                
-            # dbc.Col(
-            #         children=dcc.Slider(
-            #             id="scale-factor",
-            #             min=3,
-            #             max=50,
-            #             step=1,
-            #             value=6,
-            #             marks={3: "3", 25: "25"},
-            #         )
-            #     ),
-            dbc.Col(
+
+            [ theme_switch,dbc.Col(
+                    children=dcc.Slider(
+                        id="scaleX-factor",
+                        min=3,
+                        max=50,
+                        step=1,
+                        value=6,
+                        marks={3: "3", 25: "25"},
+                    )
+                ),
+                dbc.Col(
                     children=dbc.Input(
                         id="scale-factor",
                         type="range",
@@ -71,7 +78,7 @@ app.layout = dbc.Container(
                         value=6,
                         
                     )
-                )                
+                )]                
                 )
                 
                 ,
@@ -96,6 +103,7 @@ def update_mesh(scale_factor):
     grid = mesh.cast_to_unstructured_grid()
     mesh_state = to_mesh_state(grid)
     return mesh_state
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
