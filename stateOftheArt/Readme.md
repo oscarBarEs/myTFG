@@ -14,6 +14,8 @@ B --> D[Web Interface 2D]
 C --> D
 D --> E[Vuetify]
 D --> F[HTML]
+D --> L[Bootsrap]
+F --> L
 F <--> E
 E --> G[Renders]
 F --> G
@@ -22,6 +24,8 @@ G --> I[VTKjs]
 G --> J[ParaViewWeb]
 G --> K[Dash Plotly]
 ```
+# Graphic Apics
+
 ## VTK
 
 The Visualization Toolkit (VTK) is open source software for manipulating and displaying scientific data.VTK is part of Kitware’s collection of supported platforms for software development. 
@@ -110,3 +114,12 @@ PyVista is a high-level API to the Visualization Toolkit (VTK) that made 3D plot
 ## Conclusions 
 
 As you can see its extremely easier to plot a mesh using pyvista than using VTK, however because we will need to render the plot on a page and not on our local computers VTK its gonna be more useful because not all renders have a pyvista module.
+
+# Web libraries
+
+## HTML
+
+## Bootstrap
+
+## Vuetify
+
