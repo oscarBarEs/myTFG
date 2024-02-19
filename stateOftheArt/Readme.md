@@ -14,7 +14,7 @@ B --> D[Web Interface 2D]
 C --> D
 D --> E[Vuetify]
 D --> F[HTML]
-D --> L[Bootsrap]
+D --> L[Bootstrap]
 F <--> E
 F <--> L
 E --> G[Renders]
@@ -120,6 +120,27 @@ As you can see its extremely easier to plot a mesh using pyvista than using VTK,
 ## HTML
 
 ## Bootstrap
+[Bootratrap](https://getbootstrap.com/) is the simpliest and more popular on the web and can be imlpemented easily on all apps. Dash even comes with a module fo it use. But you coul just import the stylesheet manually and still use it. 
+
+```python
+link="bootstrap.css"
+app = dash.Dash(__name__,external_stylesheets=[link])
+```
+On trame you would need to addd it to the client
+```python
+from trame.widgets import client
+
+CSS_FILE = "Bootstrap.css"
+
+server = get_server()
+with DivLayout(server):
+    client.Style(CSS_FILE.read_text())
+```
+
+
 
 ## Vuetify
+
+Due to [Vuetify](https://vuetifyjs.com/en/) being a frameWork and not just an styleSheet you cant use it outside a Render which doesnt include it. 
+This means that you cant use it on Dash but you can on Trame, Paraview and VTKjs
 
