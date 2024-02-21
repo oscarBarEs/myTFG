@@ -7,16 +7,6 @@ import vtk
 # Get it here: https://github.com/plotly/dash-vtk/blob/master/demos/data/cow-nonormals.obj
 vtk_file = "ventricle_Tagged.vtk"
 
-reader = vtk.vtkUnstructuredGridReader()  # Use vtkUnstructuredGridReader for UNSTRUCTURED_GRID
-reader.SetFileName(vtk_file)
-reader.Update()
-unstructuredGrid = reader.GetOutput()
-mesh_state = to_mesh_state(unstructuredGrid)
-
-txt_content = None
-with open(vtk_file, 'r') as file:
-  txt_content = file.read()
-
 
 heart=None
 content = dash_vtk.View([
