@@ -46,11 +46,14 @@ def update_mesh(heartVTK,fileName):
         return
     print("File name: ",fileName)
     vtk_file = fileName
+
+    actor  = vtk.vtkDataObject()
     reader = vtk.vtkUnstructuredGridReader()  # Use vtkUnstructuredGridReader for UNSTRUCTURED_GRID
-    reader.SetFileName(vtk_file)
+    reader.ReadMeshSimple(heartVTK,actor)
     reader.Update()
-    unstructuredGrid = reader.GetOutput()
-    mesh_state = to_mesh_state(unstructuredGrid)
+    print("Actor: ",actor.GetDataObjectType())
+    unstructuredGrid =reader.GetOutput()
+    mesh_state = to_mesh_state(heartVTK)
     print("Mesh state: ")
     return dash_vtk.Mesh(state=mesh_state)
 
