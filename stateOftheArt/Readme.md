@@ -148,4 +148,11 @@ This means that you cant use it on Dash but you can on Trame, Paraview and VTKjs
 
 ## VTKJS
 
-Cant use unstructured grid as it is focus on only rendering. 
+Cant use unstructured grid as it is focus on only rendering. Need to get a vtk and extract the data object. It can be done qith Paraview.a
+## Dash
+
+Easier to create a Page, you can change the output of a DIV by getting his id on a @callback function
+
+## Trame
+
+Easy to create a single page. But hard to repaint the page

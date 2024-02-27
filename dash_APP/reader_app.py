@@ -44,18 +44,23 @@ app.layout = html.Div(
 def update_mesh(heartVTK,fileName):
     if(heartVTK is None):
         return
-    print("File name: ",fileName)
     vtk_file = fileName
 
-    actor  = vtk.vtkDataObject()
+    filename = "output.vtk"
+    write_binary_string_to_vtk(heartVTK, filename)
+
     reader = vtk.vtkUnstructuredGridReader()  # Use vtkUnstructuredGridReader for UNSTRUCTURED_GRID
-    reader.ReadMeshSimple(heartVTK,actor)
+    reader.SetFileName(vtk_file)
     reader.Update()
-    print("Actor: ",actor.GetDataObjectType())
-    unstructuredGrid =reader.GetOutput()
-    mesh_state = to_mesh_state(heartVTK)
-    print("Mesh state: ")
+    unstructuredGrid = reader.GetOutput()
+    mesh_state = to_mesh_state(unstructuredGrid)
+
     return dash_vtk.Mesh(state=mesh_state)
+
+
+def write_binary_string_to_vtk(binary_string, filename):
+    with open(filename, 'wb') as f:
+        f.write(binary_string.encode('utf-8'))
 
 if __name__ == "__main__":
     app.run(debug=True)
