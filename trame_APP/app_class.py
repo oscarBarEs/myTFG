@@ -8,6 +8,9 @@ from pyvista import examples
 from pyvista.trame.ui import plotter_ui
 from trame.app import get_server
 from trame.app.file_upload import ClientFile
+from trame.ui.router import RouterViewLayout
+from trame.widgets import router
+
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
 from trame.widgets import vuetify2 as vuetify, vega, vtk as vtkTrame
