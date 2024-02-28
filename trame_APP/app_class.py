@@ -137,7 +137,8 @@ class App_Hearth_Helper:
         vuetify.VSpacer()
 
         #FILE
-        vuetify.VIcon("mdi-heart-settings")
+        with vuetify.VBtn(icon=True,to="/heart"):
+            vuetify.VIcon("mdi-heart-settings")
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -149,7 +150,8 @@ class App_Hearth_Helper:
         )
         vuetify.VSpacer()
         #FILE
-        vuetify.VIcon("mdi-file-chart")
+        with vuetify.VBtn(icon=True,to="/data"):
+            vuetify.VIcon("mdi-file-chart")
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -161,7 +163,7 @@ class App_Hearth_Helper:
         )
 
         vuetify.VSpacer()
-        with vuetify.VBtn(icon=True):
+        with vuetify.VBtn(icon=True,to="/"):
             vuetify.VIcon("mdi-restore")
 
         vuetify.VDivider(vertical=True, classes="mx-2")
@@ -187,12 +189,37 @@ class App_Hearth_Helper:
                 style="max-width: 250px",
             ) 
     def _update_UI(self):
+
+        with RouterViewLayout(self.server, "/"):
+            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):  
+                print("pl")
+                view = plotter_ui(self.pl)
+                self.ctrl.view_update = view.update
+
+        with RouterViewLayout(self.server, "/heart"):
+            with vuetify.VCard():
+                vuetify.VCardTitle("This is Heart")
+
+
+        with RouterViewLayout(self.server, "/data"):
+            with vuetify.VCard():
+                vuetify.VCardTitle("This is Data")
+            if  (hasattr(self, "_data")):
+                with vuetify.VContainer(classes="justify-left ma-6") as container:
+                    """fig = vega.Figure(classes="ma-2", style="width: 100%;")
+                    self.ctrl.fig_update = fig.update"""
+                    vuetify.VDataTable(**table_of_simulation(self.data))
+                    
+            else:
+                    vuetify.VCardText(children=["Add a data file to start"])
+
         with SinglePageWithDrawerLayout(self.server) as layout:
             with layout.toolbar:
                 self.header()
             with layout.content:
                 # Use PyVista UI template for Plotters
-                self.main_view()
+                router.RouterView()
+                # self.main_view()
             with layout.drawer as drawer:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
@@ -212,25 +239,9 @@ class App_Hearth_Helper:
                     outlined=True,
                 )
 
-    def draw_chart(self):
-        if  (hasattr(self, "_data")):
-            with vuetify.VContainer(classes="justify-left ma-6",v_show=(not self.state.changing_page)) as container:
-                """fig = vega.Figure(classes="ma-2", style="width: 100%;")
-                self.ctrl.fig_update = fig.update"""
-                vuetify.VDataTable(**table_of_simulation(self.data))
-                
-        else:
-                vuetify.VCardText(children=["Add a data file to start"],v_show=(not self.state.changing_page))
-
     def main_view(self):
         vuetify.VCardText(children=["PRUEBA"],v_show=("{ changing_page }"))
         self.draw_chart()
-        
-        with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):
-             
-            print("pl")
-            view = plotter_ui(self.pl)
-            self.ctrl.view_update = view.update
 
         if not hasattr(self, "_actor"):
             vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page))
