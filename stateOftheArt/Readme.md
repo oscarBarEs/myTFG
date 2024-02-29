@@ -9,7 +9,7 @@ To make the Web page we will need:
 ```mermaid
 graph LR
 A[graphic APIs] --> B[VTK]
-A -- Currently not working with Trame --> C[Pyvista]
+A --> C[Pyvista]
 B --> D[Web Interface 2D]
 C --> D
 D --> E[Vuetify]
