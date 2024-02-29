@@ -14,6 +14,7 @@ from trame.widgets import router
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
 from trame.widgets import vuetify2 as vuetify, vega, vtk as vtkTrame
+from trame.widgets.vtk import VtkLocalView, VtkRemoteView
 
 from trame.decorators import TrameApp, change, life_cycle
 
@@ -22,7 +23,6 @@ from components.utils.txtToJson import fetch_data
 #from components.page.header import header
 
 pv.OFF_SCREEN = True
-
 
 @TrameApp()
 class App_Hearth_Helper:
@@ -81,6 +81,7 @@ class App_Hearth_Helper:
             print(type(self._mesh).__name__)
             if(type(self._mesh).__name__ == "UnstructuredGrid"):
                 self._actor = self.pl.add_mesh(ds, name=file.name)
+                # self.ctrl.letsChangeome()
                 cell_center = self.mesh.cell_centers().points[0]
             else:
                 self.pl.add_mesh(ds, name=file.name)
@@ -96,6 +97,7 @@ class App_Hearth_Helper:
         if file.content:
             self._data = fetch_data(file.name)
             self._update_UI()
+            # self.ctrl.letsChangeome()
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
         if  hasattr(self, "_actor"):
@@ -189,23 +191,26 @@ class App_Hearth_Helper:
                 style="max-width: 250px",
             ) 
     def _update_UI(self):
-
         with RouterViewLayout(self.server, "/"):
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height"):  
+            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height") as containerHome:  
                 print("pl")
-                view = plotter_ui(self.pl)
-                self.ctrl.view_update = view.update
+                # view = plotter_ui(self.pl)
+                # self.ctrl.view_update = view.update
+
 
         with RouterViewLayout(self.server, "/heart"):
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Heart")
 
 
+            if not hasattr(self, "_actor"):
+                vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page)) 
+
         with RouterViewLayout(self.server, "/data"):
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Data")
             if  (hasattr(self, "_data")):
-                with vuetify.VContainer(classes="justify-left ma-6") as container:
+                with vuetify.VContainer(classes="justify-left ma-6"):
                     """fig = vega.Figure(classes="ma-2", style="width: 100%;")
                     self.ctrl.fig_update = fig.update"""
                     vuetify.VDataTable(**table_of_simulation(self.data))
@@ -217,17 +222,20 @@ class App_Hearth_Helper:
             with layout.toolbar:
                 self.header()
             with layout.content:
-                # Use PyVista UI template for Plotters
                 router.RouterView()
-                # self.main_view()
+
+                with vtkTrame.VtkLocalView(self.pl.ren_win)as local:
+                    def view_update(**kwargs):
+                        local.update(**kwargs)                
+                self.ctrl.view_update = view_update
+                # Use PyVista UI template for Plotters
+                
             with layout.drawer as drawer:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard():
-
                     self.scalar_dropdown()
                     self.draw_table()
-                    vuetify.VCardText(children=["This is a heart mesh"])
         return layout
     def draw_table(self):
         if hasattr(self, "_actor"):
@@ -238,13 +246,6 @@ class App_Hearth_Helper:
                     dense=True,
                     outlined=True,
                 )
-
-    def main_view(self):
-        vuetify.VCardText(children=["PRUEBA"],v_show=("{ changing_page }"))
-        self.draw_chart()
-
-        if not hasattr(self, "_actor"):
-            vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page))
 
 def main():
     app = App_Hearth_Helper()
