@@ -14,11 +14,11 @@ B --> D[Web Interface 2D]
 C --> D
 D --> E[Vuetify]
 D --> F[HTML]
-D --> L[Bootstrap]
+F --> L[Bootstrap]
 F <--> E
-F <--> L
 E --> G[Renders]
 F --> G
+L --> G
 G --> H[Trame]
 G --> J[ParaViewWeb]
 G --> I[VTKjs]
