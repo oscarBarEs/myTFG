@@ -20,11 +20,11 @@ F <--> L
 E --> G[Renders]
 F --> G
 G --> H[Trame]
-G --> I[VTKjs]
 G --> J[ParaViewWeb]
-G --> K[Dash Plotly]
+G --> I[VTKjs]
 J --> H
 J --> I
+G --> K[Dash Plotly]
 
 ```
 # Graphic Apics
