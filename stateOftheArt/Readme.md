@@ -146,20 +146,11 @@ This means that you cant use it on Dash but you can on Trame, Paraview and VTKjs
 
 # Renderes
 
-## VTKJS
 
-Cant use unstructured grid as it is focus on only rendering. Need to get a vtk and extract the data object. It can be done qith Paraview.a
-## Dash
-
-Easier to create a Page, you can change the output of a DIV by getting his id on a @callback function
-
-## Trame
-
-Easy to create a single page. But hard to repaint the page
 
 
 |                | Trame                                                                                                               | Dash                                                                                                                                                                                                                                  | VTKJS                                                                                                              |
 |----------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
 | Lenguage       | Python                                                                                                              | Python                                                                                                                                                                                                                                | JavaScript                                                                                                         |
-| Visualize VTK  | Easy to visualize<br>You can use vtk and pyvista libraries<br>Some problems with the view                           | Complex structure to visualize vtk<br>Can not use PyVista.                                                                                                                                                                            | Easy to visulize.<br>Library doesnt contain all methods from vtk,<br>which makes it impossible to visualize grids. |
+| Visualize VTK  | Easy to visualize<br>You can use vtk and pyvista libraries<br>Some problems with the view                           | Complex structure to visualize vtk<br>Can not use PyVista.                                                                                                                                                                            | Easy to visulize.<br>Library doesnt contain all methods from vtk,<br>which makes it impossible to read Unstructured grids. |
 | Web Components | Easy to create.<br>Hard to modify during rendering.<br>Cant get a div by ID as you cant use javascript<br><br><br>  | Easy to create.<br>Very easy to modify.<br>You can get the components of the page by id <br>and modify them however you like using @callback<br>Local files are read as a string. You **cannot** get the local location of that file. | Very easy to create using html.<br>Very easy to modify using normal javascript.                                    |
