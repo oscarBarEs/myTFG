@@ -31,7 +31,6 @@ class App_Hearth_Helper:
     def __init__(self,name=None,  table_size=10):
 
         self.server = get_server(name, client_type="vue2")  
-        self.ctrl.change_page = self.change_page
         self.isPage=True
         self.pl
 
@@ -81,6 +80,7 @@ class App_Hearth_Helper:
                 self._actor = self.pl.add_mesh(ds, name=file.name)
                 # self.ctrl.letsChangeome()
                 cell_center = self.mesh.cell_centers().points[0]
+                self.update_scalar_dropdown()
             else:
                 self.pl.add_mesh(ds, name=file.name)
 
@@ -94,8 +94,22 @@ class App_Hearth_Helper:
         file = ClientFile(data_file_exchange)
         if file.content:
             self._data = fetch_data(file.name)
-            self._update_UI()
+            self.update_data_table()
             # self.ctrl.letsChangeome()
+
+
+    def update_data_table(self):
+        with self.server.ui.data_table as data_table:
+            data_table.clear()
+            if  (hasattr(self, "_data")):
+                with vuetify.VContainer(classes="justify-left ma-6"):
+                    """fig = vega.Figure(classes="ma-2", style="width: 100%;")
+                    self.ctrl.fig_update = fig.update"""
+                    vuetify.VDataTable(**table_of_simulation(self.data))
+        
+            else:
+                    vuetify.VCardText(children=["Add a data file to start"])
+
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
         if  hasattr(self, "_actor"):
@@ -110,11 +124,6 @@ class App_Hearth_Helper:
             self.actor.mapper.array_name = scalars
             self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
             self.ctrl.view_update()
-
-        
-    def change_page(self):
-        print("change UI")
-        self.ui = self._update_UI()
     
     def _build_ui(self):
        return self._update_UI()
@@ -161,18 +170,26 @@ class App_Hearth_Helper:
         vuetify.VProgressLinear(
             indeterminate=True, absolute=True, bottom=True, active=("trame__busy",)
         )
-    def scalar_dropdown(self):
-        if  hasattr(self, "_mesh"):
-            return vuetify.VSelect(
-                label="Scalars",
-                v_model=("scalars", self.mesh.active_scalars_name),
-                items=("array_list", list(self.mesh.point_data.keys())),
-                hide_details=True,
-                dense=True,
-                outlined=True,
-                classes="pt-1 ml-2",
-                style="max-width: 250px",
-            ) 
+    def update_scalar_dropdown(self):
+        
+        with self.server.ui.list_array as array_list:
+            print("array_list")
+            self.server.ui.list_array.clear()
+            print("update_scalar_dropdown")
+            if  hasattr(self, "_mesh"):
+                vuetify.VSelect(
+                                label="Scalars",
+                                v_model=("scalars", self.mesh.active_scalars_name),
+                                items=("array_list", list(self.mesh.point_data.keys())),
+                                hide_details=True,
+                                dense=True,
+                                outlined=True,
+                                classes="pt-1 ml-2",
+                                style="max-width: 250px",
+                            ) 
+        
+        
+
     def _update_UI(self):
         with RouterViewLayout(self.server, "/"):
             with vuetify.VCard() as card:
@@ -191,17 +208,11 @@ class App_Hearth_Helper:
             self.ctrl.view_update = view_update
 
 
-        with RouterViewLayout(self.server, "/data"):
+        with RouterViewLayout(self.server, "/data") as dataView:
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Data")
-            if  (hasattr(self, "_data")):
-                with vuetify.VContainer(classes="justify-left ma-6"):
-                    """fig = vega.Figure(classes="ma-2", style="width: 100%;")
-                    self.ctrl.fig_update = fig.update"""
-                    vuetify.VDataTable(**table_of_simulation(self.data))
-                    
-            else:
-                    vuetify.VCardText(children=["Add a data file to start"])
+                self.server.ui.data_table(dataView)
+
 
         with SinglePageWithDrawerLayout(self.server) as layout:
             with layout.toolbar:
@@ -213,9 +224,9 @@ class App_Hearth_Helper:
             with layout.drawer as drawer:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
-                with vuetify.VCard():
-                    self.server.ui.list_array(drawer)
-                    self.scalar_dropdown()
+                with vuetify.VCard() as cardDrawer:
+                    with vuetify.VContainer() as containerArray:
+                        self.server.ui.list_array(layout)
                     self.draw_table()
         return layout
     def draw_table(self):
