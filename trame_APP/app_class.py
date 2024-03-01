@@ -198,11 +198,12 @@ class App_Hearth_Helper:
                 # self.ctrl.view_update = view.update
 
 
-        with RouterViewLayout(self.server, "/heart"):
-            with vuetify.VCard():
-                vuetify.VCardTitle("This is Heart")
-
-
+        with RouterViewLayout(self.server, "/heart") as layout:
+            layout.root.classes="fill-height"
+            with vtkTrame.VtkLocalView(self.pl.ren_win)as local:
+                    def view_update(**kwargs):
+                        local.update(**kwargs)                
+            self.ctrl.view_update = view_update
             if not hasattr(self, "_actor"):
                 vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page)) 
 
@@ -223,11 +224,6 @@ class App_Hearth_Helper:
                 self.header()
             with layout.content:
                 router.RouterView()
-
-                with vtkTrame.VtkLocalView(self.pl.ren_win)as local:
-                    def view_update(**kwargs):
-                        local.update(**kwargs)                
-                self.ctrl.view_update = view_update
                 # Use PyVista UI template for Plotters
                 
             with layout.drawer as drawer:
