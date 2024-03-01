@@ -133,6 +133,12 @@ class App_Hearth_Helper:
         #FILE
         with vuetify.VBtn(icon=True,to="/heart"):
             vuetify.VIcon("mdi-heart-settings")
+            vuetify.VCheckbox(
+                on_icon="mdi-file-chart",
+                off_icon="mdi-file-chart-outline",
+                        classes="mx-1",
+                hide_details=True,
+                dense=True)
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -144,6 +150,15 @@ class App_Hearth_Helper:
         )
         vuetify.VSpacer()
         #FILE
+        # vuetify.VCheckbox(
+        # v_model=("page_chart_visibility", self._page_heart),
+        # on_icon="mdi-file-chart",
+        # off_icon="mdi-file-chart-outline",
+        # classes="mx-1",
+        # hide_details=True,
+        # dense=True,
+        # value=self._page_data
+        # )  
         with vuetify.VBtn(icon=True,to="/data"):
             vuetify.VIcon("mdi-file-chart")
         vuetify.VFileInput(
