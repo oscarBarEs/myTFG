@@ -31,9 +31,7 @@ class App_Hearth_Helper:
     def __init__(self,name=None,  table_size=10):
 
         self.server = get_server(name, client_type="vue2")  
-        self.state.changing_page = False
         self.ctrl.change_page = self.change_page
-        
         self.isPage=True
         self.pl
 
@@ -87,7 +85,7 @@ class App_Hearth_Helper:
                 self.pl.add_mesh(ds, name=file.name)
 
             self.pl.reset_camera()
-            self._update_UI()
+            # self._update_UI()
         else:
             self.pl.clear_actors()
             self.pl.reset_camera()  
@@ -103,7 +101,7 @@ class App_Hearth_Helper:
         if  hasattr(self, "_actor"):
             self.actor.mapper.lookup_table.log_scale = log_scale
             self.ctrl.view_update()
-            self.ui = self._update_UI()
+            # self.ui = self._update_UI()
 
     @change("scalars")
     def set_scalars(self, **kwargs):
@@ -113,10 +111,6 @@ class App_Hearth_Helper:
             self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
             self.ctrl.view_update()
 
-
-    @change("changing_page")
-    def set_changing_page(self,changing_page, **kwargs):
-        print("changing_page")
         
     def change_page(self):
         print("change UI")
@@ -127,17 +121,6 @@ class App_Hearth_Helper:
     
     def header(self):         
         vuetify.VSpacer()
-        vuetify.VIcon("mdi-file-chart")
-        vuetify.VSwitch(
-            v_model=("changing_page"),
-            click=self.change_page,
-            hide_details=True,
-            dense=True,
-
-        )
-        vuetify.VIcon("mdi-heart-settings")
-        vuetify.VSpacer()
-
         #FILE
         with vuetify.VBtn(icon=True,to="/heart"):
             vuetify.VIcon("mdi-heart-settings")
@@ -192,20 +175,21 @@ class App_Hearth_Helper:
             ) 
     def _update_UI(self):
         with RouterViewLayout(self.server, "/"):
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height") as containerHome:  
-                print("pl")
-                # view = plotter_ui(self.pl)
-                # self.ctrl.view_update = view.update
-
-
+            with vuetify.VCard() as card:
+                card.classes="fill-width"
+                vuetify.VCardTitle("Main Page")
+                vuetify.VCardText(children=["Add the file heart to see it, and the file data to see the results. I interact with the data to see the results"])
         with RouterViewLayout(self.server, "/heart") as layout:
             layout.root.classes="fill-height"
+            with vuetify.VCard():
+                vuetify.VCardTitle("This is Visualizer")            
+            if not hasattr(self, "_actor"):
+                vuetify.VCardText(children=["Add a heart file to start"])             
             with vtkTrame.VtkLocalView(self.pl.ren_win)as local:
                     def view_update(**kwargs):
                         local.update(**kwargs)                
             self.ctrl.view_update = view_update
-            if not hasattr(self, "_actor"):
-                vuetify.VCardText(children=["Add a heart file to start"],v_show=(self.state.changing_page)) 
+
 
         with RouterViewLayout(self.server, "/data"):
             with vuetify.VCard():
@@ -230,6 +214,7 @@ class App_Hearth_Helper:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard():
+                    self.server.ui.list_array(drawer)
                     self.scalar_dropdown()
                     self.draw_table()
         return layout
