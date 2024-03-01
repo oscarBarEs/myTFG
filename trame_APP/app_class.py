@@ -65,6 +65,9 @@ class App_Hearth_Helper:
         if not hasattr(self, "_view"):
             self._view = plotter_ui(self.pl)
         return self._view
+    def update_Page(self):
+        self.isPage = not self.isPage
+        self.update_heart_icon()
     @change("heart_file_exchange")
     def handle(self,heart_file_exchange, **kwargs):
         file = ClientFile(heart_file_exchange)
@@ -128,17 +131,14 @@ class App_Hearth_Helper:
     def _build_ui(self):
        return self._update_UI()
     
-    def header(self):         
+    def header(self,layout):         
         vuetify.VSpacer()
         #FILE
-        with vuetify.VBtn(icon=True,to="/heart"):
-            vuetify.VIcon("mdi-heart-settings")
-            vuetify.VCheckbox(
-                on_icon="mdi-file-chart",
-                off_icon="mdi-file-chart-outline",
-                        classes="mx-1",
-                hide_details=True,
-                dense=True)
+        with vuetify.VBtn(icon=True,click=self.update_Page,to="/heart"):
+            # vuetify.VIcon("mdi-heart-settings",click=self.update_heart_icon)
+            self.server.ui.heart_icon(layout)
+            self.update_heart_icon()
+
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -185,6 +185,16 @@ class App_Hearth_Helper:
         vuetify.VProgressLinear(
             indeterminate=True, absolute=True, bottom=True, active=("trame__busy",)
         )
+
+    def update_heart_icon(self):
+        with self.server.ui.heart_icon as heart_icon:
+            heart_icon.clear()
+            if  self.isPage:
+                vuetify.VIcon("mdi-heart-settings")
+            else:
+                vuetify.VIcon("mdi-heart-settings-outline")
+
+
     def update_scalar_dropdown(self):
         
         with self.server.ui.list_array as array_list:
@@ -231,7 +241,7 @@ class App_Hearth_Helper:
 
         with SinglePageWithDrawerLayout(self.server) as layout:
             with layout.toolbar:
-                self.header()
+                self.header(layout)
             with layout.content:
                 router.RouterView()
                 # Use PyVista UI template for Plotters
