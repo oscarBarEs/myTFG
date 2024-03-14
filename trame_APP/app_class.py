@@ -13,7 +13,7 @@ from trame.widgets import router
 
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
-from trame.widgets import vuetify2 as vuetify, vega, vtk as vtkTrame
+from trame.widgets import vuetify2 as vuetify, vega, vtk as vtkTrame,plotly
 from trame.widgets.vtk import VtkLocalView, VtkRemoteView
 
 from trame.decorators import TrameApp, change, life_cycle
@@ -68,6 +68,8 @@ class App_Hearth_Helper:
     def update_Page(self):
         self.isPage = not self.isPage
         self.update_heart_icon()
+        self.update_chart_icon()
+
     @change("heart_file_exchange")
     def handle(self,heart_file_exchange, **kwargs):
         file = ClientFile(heart_file_exchange)
@@ -91,14 +93,18 @@ class App_Hearth_Helper:
             # self._update_UI()
         else:
             self.pl.clear_actors()
-            self.pl.reset_camera()  
+            self.pl.reset_camera() 
+
     @change("data_file_exchange")
-    def handle_data(self,data_file_exchange, **kwargs):
+    def handle_data(self, data_file_exchange, **kwargs):
         file = ClientFile(data_file_exchange)
         if file.content:
-            self._data = fetch_data(file.name)
-            self.update_data_table()
-            # self.ctrl.letsChangeome()
+            try:
+                self._data = fetch_data(file.name)
+                self.update_data_table()
+            except UnicodeDecodeError:
+                print(f"Error: File {file.name} is not in a valid format or encoding.")
+                # Handle the error appropriately here
 
 
     def update_data_table(self):
@@ -118,7 +124,6 @@ class App_Hearth_Helper:
         if  hasattr(self, "_actor"):
             self.actor.mapper.lookup_table.log_scale = log_scale
             self.ctrl.view_update()
-            # self.ui = self._update_UI()
 
     @change("scalars")
     def set_scalars(self, **kwargs):
@@ -149,18 +154,10 @@ class App_Hearth_Helper:
             style="max-width: 300px;",
         )
         vuetify.VSpacer()
-        #FILE
-        # vuetify.VCheckbox(
-        # v_model=("page_chart_visibility", self._page_heart),
-        # on_icon="mdi-file-chart",
-        # off_icon="mdi-file-chart-outline",
-        # classes="mx-1",
-        # hide_details=True,
-        # dense=True,
-        # value=self._page_data
-        # )  
-        with vuetify.VBtn(icon=True,to="/data"):
-            vuetify.VIcon("mdi-file-chart")
+        with vuetify.VBtn(icon=True,click=self.update_Page,to="/data"):
+            self.server.ui.chart_icon(layout)
+            self.update_chart_icon()
+
         vuetify.VFileInput(
             show_size=True,
             small_chips=True,
@@ -193,7 +190,13 @@ class App_Hearth_Helper:
                 vuetify.VIcon("mdi-heart-settings")
             else:
                 vuetify.VIcon("mdi-heart-settings-outline")
-
+    def update_chart_icon(self):
+        with self.server.ui.chart_icon as chart_icon:
+            chart_icon.clear()
+            if  not self.isPage:
+                vuetify.VIcon("mdi-file-chart")
+            else:
+                vuetify.VIcon("mdi-file-chart-outline")
 
     def update_scalar_dropdown(self):
         
@@ -237,6 +240,16 @@ class App_Hearth_Helper:
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Data")
                 self.server.ui.data_table(dataView)
+                figure = plotly.Figure(
+                style="width: 100%; height: 100%;",
+                display_logo=False,
+                display_mode_bar="true",
+                # selected=(on_event, "['selected', utils.safe($event)]"),
+                # hover=(on_event, "['hover', utils.safe($event)]"),
+                # selecting=(on_event, "['selecting', $event]"),
+                # unhover=(on_event, "['unhover', $event]"),
+                )
+                self.ctrl.figure_update = figure.update
 
 
         with SinglePageWithDrawerLayout(self.server) as layout:
