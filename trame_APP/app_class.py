@@ -42,7 +42,6 @@ class App_Hearth_Helper:
         return self.server.controller
     @property
     def state(self):
-        
         return self.server.state
 
     @property
@@ -65,10 +64,16 @@ class App_Hearth_Helper:
         if not hasattr(self, "_view"):
             self._view = plotter_ui(self.pl)
         return self._view
+    
     def update_Page(self):
         self.isPage = not self.isPage
         self.update_heart_icon()
         self.update_chart_icon()
+
+# --------------------------------------------------------------------------------
+# HEART PIPELINE
+# --------------------------------------------------------------------------------
+
 
     @change("heart_file_exchange")
     def handle(self,heart_file_exchange, **kwargs):
@@ -95,6 +100,23 @@ class App_Hearth_Helper:
             self.pl.clear_actors()
             self.pl.reset_camera() 
 
+    @change("log_scale")
+    def set_log_scale(self,log_scale=False, **kwargs):
+        if  hasattr(self, "_actor"):
+            self.actor.mapper.lookup_table.log_scale = log_scale
+            self.ctrl.view_update()
+
+    @change("scalars")
+    def set_scalars(self, **kwargs):
+        if  hasattr(self, "_mesh"):
+            scalars=self.mesh.active_scalars_name
+            self.actor.mapper.array_name = scalars
+            self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
+            self.ctrl.view_update()
+# --------------------------------------------------------------------------------
+# DATA CHARTS PIPELINE
+# --------------------------------------------------------------------------------
+
     @change("data_file_exchange")
     def handle_data(self, data_file_exchange, **kwargs):
         file = ClientFile(data_file_exchange)
@@ -105,6 +127,10 @@ class App_Hearth_Helper:
             except UnicodeDecodeError:
                 print(f"Error: File {file.name} is not in a valid format or encoding.")
                 # Handle the error appropriately here
+
+# --------------------------------------------------------------------------------
+# DYNAMIC LAYOUT
+# --------------------------------------------------------------------------------
 
 
     def update_data_table(self):
@@ -119,19 +145,43 @@ class App_Hearth_Helper:
             else:
                     vuetify.VCardText(children=["Add a data file to start"])
 
-    @change("log_scale")
-    def set_log_scale(self,log_scale=False, **kwargs):
-        if  hasattr(self, "_actor"):
-            self.actor.mapper.lookup_table.log_scale = log_scale
-            self.ctrl.view_update()
+    def update_heart_icon(self):
+        with self.server.ui.heart_icon as heart_icon:
+            heart_icon.clear()
+            if  self.isPage:
+                vuetify.VIcon("mdi-heart-settings")
+            else:
+                vuetify.VIcon("mdi-heart-settings-outline")
+    def update_chart_icon(self):
+        with self.server.ui.chart_icon as chart_icon:
+            chart_icon.clear()
+            if  not self.isPage:
+                vuetify.VIcon("mdi-file-chart")
+            else:
+                vuetify.VIcon("mdi-file-chart-outline")
 
-    @change("scalars")
-    def set_scalars(self, **kwargs):
-        if  hasattr(self, "_mesh"):
-            scalars=self.mesh.active_scalars_name
-            self.actor.mapper.array_name = scalars
-            self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
-            self.ctrl.view_update()
+    def update_scalar_dropdown(self):
+        
+        with self.server.ui.list_array as array_list:
+            print("array_list")
+            self.server.ui.list_array.clear()
+            print("update_scalar_dropdown")
+            if  hasattr(self, "_mesh"):
+                vuetify.VSelect(
+                                label="Scalars",
+                                v_model=("scalars", self.mesh.active_scalars_name),
+                                items=("array_list", list(self.mesh.point_data.keys())),
+                                hide_details=True,
+                                dense=True,
+                                outlined=True,
+                                classes="pt-1 ml-2",
+                                style="max-width: 250px",
+                            ) 
+        
+        
+# --------------------------------------------------------------------------------
+# UI LAYOUT
+# --------------------------------------------------------------------------------
     
     def _build_ui(self):
        return self._update_UI()
@@ -183,40 +233,7 @@ class App_Hearth_Helper:
             indeterminate=True, absolute=True, bottom=True, active=("trame__busy",)
         )
 
-    def update_heart_icon(self):
-        with self.server.ui.heart_icon as heart_icon:
-            heart_icon.clear()
-            if  self.isPage:
-                vuetify.VIcon("mdi-heart-settings")
-            else:
-                vuetify.VIcon("mdi-heart-settings-outline")
-    def update_chart_icon(self):
-        with self.server.ui.chart_icon as chart_icon:
-            chart_icon.clear()
-            if  not self.isPage:
-                vuetify.VIcon("mdi-file-chart")
-            else:
-                vuetify.VIcon("mdi-file-chart-outline")
 
-    def update_scalar_dropdown(self):
-        
-        with self.server.ui.list_array as array_list:
-            print("array_list")
-            self.server.ui.list_array.clear()
-            print("update_scalar_dropdown")
-            if  hasattr(self, "_mesh"):
-                vuetify.VSelect(
-                                label="Scalars",
-                                v_model=("scalars", self.mesh.active_scalars_name),
-                                items=("array_list", list(self.mesh.point_data.keys())),
-                                hide_details=True,
-                                dense=True,
-                                outlined=True,
-                                classes="pt-1 ml-2",
-                                style="max-width: 250px",
-                            ) 
-        
-        
 
     def _update_UI(self):
         with RouterViewLayout(self.server, "/"):
@@ -277,6 +294,13 @@ class App_Hearth_Helper:
                     outlined=True,
                 )
 
+
+
+        
+# --------------------------------------------------------------------------------
+# APP PIPELINE
+# --------------------------------------------------------------------------------
+    
 def main():
     app = App_Hearth_Helper()
     app.server.start(port=8000)
