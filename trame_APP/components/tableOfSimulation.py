@@ -61,8 +61,8 @@ def full_chart(_data):
 def chart_onset_pacing(selection=[], **kwargs):
     global DATA_FRAME
     chart = alt.Chart(DATA_FRAME).mark_point().encode(
-        x='Segmento AHA onset:Q',
-        y='Segmento AHA pacing:Q'
+        x='Segmento AHA:Q',
+        y='Segmento Reen:Q'
     ).properties(width='container', height=100)
     
     return chart

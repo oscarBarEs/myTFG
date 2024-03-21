@@ -4,6 +4,7 @@ from enum import Enum
 
 import vtk
 import pyvista as pv
+
 from pyvista import examples
 from pyvista.trame.ui import plotter_ui
 from trame.app import get_server
@@ -33,7 +34,7 @@ class App_Hearth_Helper:
         self.server = get_server(name, client_type="vue2")  
         self.isPage=True
         self.pl
-
+        self.chartType =""
         self._has_heart = False 
         self.ui = self._build_ui()
         
@@ -88,31 +89,27 @@ class App_Hearth_Helper:
             print(type(self._mesh).__name__)
             if(type(self._mesh).__name__ == "UnstructuredGrid"):
                 self._actor = self.pl.add_mesh(ds, name=file.name)
-                # self.ctrl.letsChangeome()
                 cell_center = self.mesh.cell_centers().points[0]
                 self.update_scalar_dropdown()
             else:
                 self.pl.add_mesh(ds, name=file.name)
 
             self.pl.reset_camera()
+            self.ctrl.view_update()
             # self._update_UI()
-        else:
-            self.pl.clear_actors()
-            self.pl.reset_camera() 
+
 
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
-        if  hasattr(self, "_actor"):
-            self.actor.mapper.lookup_table.log_scale = log_scale
-            self.ctrl.view_update()
+        self.actor.mapper.lookup_table.log_scale = log_scale
+        self.ctrl.view_update()
 
     @change("scalars")
     def set_scalars(self, **kwargs):
-        if  hasattr(self, "_mesh"):
-            scalars=self.mesh.active_scalars_name
-            self.actor.mapper.array_name = scalars
-            self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
-            self.ctrl.view_update()
+        scalars=self.mesh.active_scalars_name
+        self.actor.mapper.array_name = scalars
+        self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
+        self.ctrl.view_update()
 # --------------------------------------------------------------------------------
 # DATA CHARTS PIPELINE
 # --------------------------------------------------------------------------------
@@ -124,9 +121,34 @@ class App_Hearth_Helper:
             try:
                 self._data = fetch_data(file.name)
                 self.update_data_table()
+                self.update_charts_dropdown()
             except UnicodeDecodeError:
                 print(f"Error: File {file.name} is not in a valid format or encoding.")
                 # Handle the error appropriately here
+    @change("chartsType")
+    def typeOfChart(self,chartsType, **kwargs):
+        self.chartType = chartsType
+    @change("selection")
+    def selection_change_tos(self,selection=[], **kwargs):
+        # Chart
+        
+        if self.chartType == "Count Segmentos Reen":
+            chart = selection_change_tos(selection)
+        else:
+            chart = chart_onset_pacing(selection)
+
+        self.ctrl.fig_update(chart)
+
+        for x in selection:
+            print(x)
+            idReen =int(x["Id's Reen"])
+            idPac =int(x["id_extraI"])
+            if hasattr(self, "_mesh"):
+                cx = self.mesh.points[idReen]    
+                self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red")
+                cy = self.mesh.points[idPac]
+                self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue")
+        self.ctrl.view_update()
 
 # --------------------------------------------------------------------------------
 # DYNAMIC LAYOUT
@@ -161,22 +183,40 @@ class App_Hearth_Helper:
                 vuetify.VIcon("mdi-file-chart-outline")
 
     def update_scalar_dropdown(self):
-        
         with self.server.ui.list_array as array_list:
-            print("array_list")
-            self.server.ui.list_array.clear()
-            print("update_scalar_dropdown")
-            if  hasattr(self, "_mesh"):
-                vuetify.VSelect(
-                                label="Scalars",
-                                v_model=("scalars", self.mesh.active_scalars_name),
-                                items=("array_list", list(self.mesh.point_data.keys())),
-                                hide_details=True,
-                                dense=True,
-                                outlined=True,
-                                classes="pt-1 ml-2",
-                                style="max-width: 250px",
-                            ) 
+            array_list.clear()
+            vuetify.VCheckbox(
+                label="Log Scale",
+                v_model=("log_scale", False),
+                hide_details=True,
+                dense=True,
+                outlined=True,
+            )
+            vuetify.VSelect(
+                            label="Scalars",
+                            v_model=("scalars", self.mesh.active_scalars_name),
+                            items=("array_list", list(self.mesh.point_data.keys())),
+                            hide_details=True,
+                            dense=True,
+                            outlined=True,
+                            classes="pt-1 ml-2",
+                            style="max-width: 250px",
+                        )
+    def update_charts_dropdown(self):
+        with self.server.ui.charts_type_array as charts_type_array:
+            #self.server.ui.list_array.clear()
+            charts_type_array.clear()
+            chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
+            vuetify.VSelect(
+                            label="Scalars",
+                            v_model=("chartsType", chartsType[0]),
+                            items=("array_list", chartsType),
+                            hide_details=True,
+                            dense=True,
+                            outlined=True,
+                            classes="pt-1 ml-2",
+                            style="max-width: 250px",
+                        )
         
         
 # --------------------------------------------------------------------------------
@@ -232,8 +272,7 @@ class App_Hearth_Helper:
         vuetify.VProgressLinear(
             indeterminate=True, absolute=True, bottom=True, active=("trame__busy",)
         )
-
-
+         
 
     def _update_UI(self):
         with RouterViewLayout(self.server, "/"):
@@ -241,6 +280,11 @@ class App_Hearth_Helper:
                 card.classes="fill-width"
                 vuetify.VCardTitle("Main Page")
                 vuetify.VCardText(children=["Add the file heart to see it, and the file data to see the results. I interact with the data to see the results"])
+        
+        # --------------------------------------------------------------------------------
+        # HEART LAYOUT
+        # --------------------------------------------------------------------------------
+                
         with RouterViewLayout(self.server, "/heart") as layout:
             layout.root.classes="fill-height"
             with vuetify.VCard():
@@ -252,22 +296,20 @@ class App_Hearth_Helper:
                         local.update(**kwargs)                
             self.ctrl.view_update = view_update
 
-
+        # --------------------------------------------------------------------------------
+        # DATA LAYOUT
+        # --------------------------------------------------------------------------------
+        
         with RouterViewLayout(self.server, "/data") as dataView:
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Data")
                 self.server.ui.data_table(dataView)
-                figure = plotly.Figure(
-                style="width: 100%; height: 100%;",
-                display_logo=False,
-                display_mode_bar="true",
-                # selected=(on_event, "['selected', utils.safe($event)]"),
-                # hover=(on_event, "['hover', utils.safe($event)]"),
-                # selecting=(on_event, "['selecting', $event]"),
-                # unhover=(on_event, "['unhover', $event]"),
-                )
-                self.ctrl.figure_update = figure.update
-
+                fig = vega.Figure(classes="ma-2", style="width: 100%;")
+                self.ctrl.fig_update = fig.update
+        # --------------------------------------------------------------------------------
+        # VIEW LAYOUT
+        # --------------------------------------------------------------------------------
+        
 
         with SinglePageWithDrawerLayout(self.server) as layout:
             with layout.toolbar:
@@ -282,17 +324,11 @@ class App_Hearth_Helper:
                 with vuetify.VCard() as cardDrawer:
                     with vuetify.VContainer() as containerArray:
                         self.server.ui.list_array(layout)
-                    self.draw_table()
+                        self.server.ui.charts_type_array(layout)
+                   
         return layout
-    def draw_table(self):
-        if hasattr(self, "_actor"):
-            vuetify.VCheckbox(
-                    label="Log Scale",
-                    v_model=("log_scale", False),
-                    hide_details=True,
-                    dense=True,
-                    outlined=True,
-                )
+    
+
 
 
 
