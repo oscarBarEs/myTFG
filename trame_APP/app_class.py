@@ -1,4 +1,4 @@
-
+import os
 import tempfile
 from enum import Enum
 
@@ -25,6 +25,22 @@ from components.utils.txtToJson import fetch_data
 
 pv.OFF_SCREEN = True
 
+class VTKActor:
+    def __init__(self,mesh,actor):
+        self.mesh = mesh
+        self.actor = actor
+
+
+class dataArritmic:
+    def __init_(self,ventricle,endo,core,res,pname):
+        self.ventricle = ventricle
+        self.endo = endo
+        self.core = core
+        self.res = res
+        self.pname = pname
+
+
+
 @TrameApp()
 class App_Hearth_Helper:
 
@@ -34,10 +50,60 @@ class App_Hearth_Helper:
         self.server = get_server(name, client_type="vue2")  
         self.isPage=True
         self.pl
+        self.casos = self.casesReader()
         self.chartType =""
-        self._has_heart = False 
         self.ui = self._build_ui()
-        
+        self.ctrl.view_update()
+    
+    
+
+    def casesReader(self):
+        casos = []
+        rootFolder = os.path.join(os.path.dirname(__file__), 'casos')
+        for root, dirs, files in os.walk(rootFolder):
+            for file in files:
+                ventricle = None
+                endo = None
+                core = None
+                res = None
+                if file.endswith(".vtk"):
+                    if file.startswith("ventricle"):
+                        ventricle = file
+                        print(file)
+                    elif file.startswith("Endo"):  
+                        endo = file
+                        print(file)
+                    elif file.startswith("Core"):
+                        core = file                      
+                        print(file)
+                    
+                elif file.endswith(".txt"):
+                    res = file
+                    print(file)
+                if ventricle and endo and core and res:
+                    pname = os.path.basename(root)
+
+                    ventricle = os.path.join(root,ventricle)
+                    ven = self.getVtkActor(ventricle)
+
+                    endo = os.path.join(root,endo)
+                    end= self.getVtkActor(endo)
+
+                    core = os.path.join(root,core)
+                    cor = self.getVtkActor(core)
+
+                    res = os.path.join(root,res)
+   
+                    ventricle = pv.read(ventricle)
+                    endo = pv.read(endo)
+                    core = pv.read(core)
+                    res = fetch_data(res)
+
+                    casos.append(dataArritmic(ven,end,cor,res,pname))
+                
+        return casos
+    
+
     @property
     def ctrl(self):
         return self.server.controller
@@ -74,7 +140,21 @@ class App_Hearth_Helper:
 # --------------------------------------------------------------------------------
 # HEART PIPELINE
 # --------------------------------------------------------------------------------
-
+    def getVtkActor(self,ventricle_file):
+        file = ClientFile(ventricle_file)
+        if file.content:
+            bytes = file.content
+            with tempfile.NamedTemporaryFile(suffix=file.name) as path:
+                with open(path.name, 'wb') as f:
+                    f.write(bytes)
+                ds = pv.read(path.name)
+                mesh=ds
+                print(type(self._mesh).__name__)
+                actor = self.pl.add_mesh(ds, name=file.name)
+            
+                ventricle = VTKActor(mesh,actor)
+                return ventricle
+        
 
     @change("heart_file_exchange")
     def handle(self,heart_file_exchange, **kwargs):
@@ -138,17 +218,30 @@ class App_Hearth_Helper:
             chart = chart_onset_pacing(selection)
 
         self.ctrl.fig_update(chart)
-
+        # mesh = self.mesh.extract_surface()
+        # arrows = mesh.point_normals
         for x in selection:
             print(x)
             idReen =int(x["Id's Reen"])
             idPac =int(x["id_extraI"])
             if hasattr(self, "_mesh"):
-                cx = self.mesh.points[idReen]    
+
+                cx = self.mesh.points[idReen]   
+                # cxNormal =  arrows[idReen]
                 self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red")
+                # self.pl.add_mesh(pv.Arrow(start=(cx-cxNormal*2), direction=cxNormal, scale=10), color="red")
                 cy = self.mesh.points[idPac]
                 self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue")
         self.ctrl.view_update()
+
+# --------------------------------------------------------------------------------
+# FULL INPUT FILE
+# --------------------------------------------------------------------------------
+
+
+    @change("rootFolder")
+    def handlePAtients(self,rootFolder, **kwargs):
+        print(rootFolder) 
 
 # --------------------------------------------------------------------------------
 # DYNAMIC LAYOUT
@@ -280,7 +373,15 @@ class App_Hearth_Helper:
                 card.classes="fill-width"
                 vuetify.VCardTitle("Main Page")
                 vuetify.VCardText(children=["Add the file heart to see it, and the file data to see the results. I interact with the data to see the results"])
-        
+                vuetify.VFileInput(
+                    show_size=True,
+                    small_chips=True,
+                    truncate_length=25,
+                    v_model=("rootFolder", None),
+                    dense=True,
+                    hide_details=True,
+                    style="max-width: 300px;",
+                )
         # --------------------------------------------------------------------------------
         # HEART LAYOUT
         # --------------------------------------------------------------------------------
