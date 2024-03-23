@@ -25,11 +25,15 @@ from components.utils.txtToJson import fetch_data
 
 pv.OFF_SCREEN = True
 
-class VTKActor:
+class VentricleVTK:
     def __init__(self,mesh,actor):
         self.mesh = mesh
         self.actor = actor
 
+class Arritmia:
+    def __init__(self,reen,pacing):
+        self.reen = reen
+        self.pacing = pacing
 
 class dataArritmic:
     def __init_(self,ventricle,endo,core,res,pname):
@@ -49,6 +53,7 @@ class App_Hearth_Helper:
 
         self.server = get_server(name, client_type="vue2")  
         self.isPage=True
+        self.arritmias = []
         self.pl
         self.casos = self.casesReader()
         self.chartType =""
@@ -149,10 +154,9 @@ class App_Hearth_Helper:
                     f.write(bytes)
                 ds = pv.read(path.name)
                 mesh=ds
-                print(type(self._mesh).__name__)
                 actor = self.pl.add_mesh(ds, name=file.name)
             
-                ventricle = VTKActor(mesh,actor)
+                ventricle = VentricleVTK(mesh,actor)
                 return ventricle
         
 
@@ -165,10 +169,10 @@ class App_Hearth_Helper:
                 with open(path.name, 'wb') as f:
                     f.write(bytes)
                 ds = pv.read(path.name)
-            self._mesh=ds
-            print(type(self._mesh).__name__)
-            if(type(self._mesh).__name__ == "UnstructuredGrid"):
-                self._actor = self.pl.add_mesh(ds, name=file.name)
+            
+            if(type(ds).__name__ == "UnstructuredGrid"):
+                self._mesh=ds
+                self._actor = self.pl.add_mesh(ds, name=file.name,opacity=0)
                 cell_center = self.mesh.cell_centers().points[0]
                 self.update_scalar_dropdown()
             else:
@@ -189,6 +193,11 @@ class App_Hearth_Helper:
         scalars=self.mesh.active_scalars_name
         self.actor.mapper.array_name = scalars
         self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
+        self.ctrl.view_update()
+
+    @change("opacity")
+    def set_opacity(self,opacity, **kwargs):
+        self.actor.GetProperty().SetOpacity(opacity)
         self.ctrl.view_update()
 # --------------------------------------------------------------------------------
 # DATA CHARTS PIPELINE
@@ -218,21 +227,47 @@ class App_Hearth_Helper:
             chart = chart_onset_pacing(selection)
 
         self.ctrl.fig_update(chart)
-        # mesh = self.mesh.extract_surface()
-        # arrows = mesh.point_normals
-        for x in selection:
-            print(x)
-            idReen =int(x["Id's Reen"])
-            idPac =int(x["id_extraI"])
-            if hasattr(self, "_mesh"):
+        if hasattr(self, "_mesh"):
+            newMesh = self.mesh.extract_surface()
+            arrows = newMesh.point_normals
+            print("Num Normales")
+            print(len(arrows))
+            print("Num Puntos")
+            print(len(self.mesh.points))
+            print("Arritmias")
+            print(self.arritmias)
+            for x in selection:
+                idReen =int(x["Id's Reen"])
+                idPac =int(x["id_extraI"])
+                isFound = False
 
-                cx = self.mesh.points[idReen]   
-                # cxNormal =  arrows[idReen]
-                self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red")
-                # self.pl.add_mesh(pv.Arrow(start=(cx-cxNormal*2), direction=cxNormal, scale=10), color="red")
-                cy = self.mesh.points[idPac]
-                self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue")
-        self.ctrl.view_update()
+                # for arritmia in self.arritmias:
+                #     if arritmia.reen == idReen and arritmia.pacing == idPac:
+                #         print("Ya existe")
+                #         print(arritmia.reen)
+                #         print(idReen)
+                #         isFound = True
+                #         continue
+                #     else:
+                #         newArritnia = Arritmia(idReen,idPac)
+                #         self.arritmias.append(newArritnia)
+
+                # if not self.arritmias:
+                #     newArritnia = Arritmia(idReen,idPac)
+                #     self.arritmias.append(newArritnia)
+
+                if not isFound:
+                    print(x)
+
+                    cx = self.mesh.points[idReen]   
+                    # cxNormal =  arrows[idReen]
+                    reenName= "Reen"+str(idReen)
+                    self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
+                    cy = self.mesh.points[idPac]
+                    pacName= "Pac"+str(idPac)
+                    self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
+
+            self.ctrl.view_update()
 
 # --------------------------------------------------------------------------------
 # FULL INPUT FILE
@@ -295,6 +330,13 @@ class App_Hearth_Helper:
                             classes="pt-1 ml-2",
                             style="max-width: 250px",
                         )
+            vuetify.VSlider(
+                label="Opacity",
+                v_model=("opacity", 0.0),
+                min=0.0,
+                max=1.0,
+                step=0.1)
+            
     def update_charts_dropdown(self):
         with self.server.ui.charts_type_array as charts_type_array:
             #self.server.ui.list_array.clear()
@@ -391,7 +433,7 @@ class App_Hearth_Helper:
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Visualizer")            
             if not hasattr(self, "_actor"):
-                vuetify.VCardText(children=["Add a heart file to start"])             
+                vuetify.VCardText(children=["Add a heart file to start <br> Red = Reeentry, Blue = Pacing"])             
             with vtkTrame.VtkLocalView(self.pl.ren_win)as local:
                     def view_update(**kwargs):
                         local.update(**kwargs)                
