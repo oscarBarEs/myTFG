@@ -52,7 +52,7 @@ class App_Hearth_Helper:
     def __init__(self,name=None,  table_size=10):
 
         self.server = get_server(name, client_type="vue2")  
-        self.isPage=True
+        self.isPage=0
         self.arritmias = []
         self.pl
         self.casos = self.casesReader()
@@ -137,12 +137,7 @@ class App_Hearth_Helper:
             self._view = plotter_ui(self.pl)
         return self._view
     
-    def update_Page(self):
-        self.isPage = not self.isPage
-        self.update_heart_icon()
-        self.update_chart_icon()
-        print("Actores")
-        print(self.pl.meshes)
+
 # --------------------------------------------------------------------------------
 # HEART PIPELINE
 # --------------------------------------------------------------------------------
@@ -305,17 +300,25 @@ class App_Hearth_Helper:
             else:
                     vuetify.VCardText(children=["Add a data file to start"])
 
+    def update_Page(self, *num, **kwargs):
+        print(num[0])
+        self.isPage = num[0]
+        self.update_heart_icon()
+        self.update_chart_icon()
+        print("Actores")
+        # print(self.pl.meshes)
+
     def update_heart_icon(self):
         with self.server.ui.heart_icon as heart_icon:
             heart_icon.clear()
-            if  self.isPage:
+            if  self.isPage == 1:
                 vuetify.VIcon("mdi-heart-settings")
             else:
                 vuetify.VIcon("mdi-heart-settings-outline")
     def update_chart_icon(self):
         with self.server.ui.chart_icon as chart_icon:
             chart_icon.clear()
-            if  not self.isPage:
+            if  self.isPage == 2:
                 vuetify.VIcon("mdi-file-chart")
             else:
                 vuetify.VIcon("mdi-file-chart-outline")
@@ -381,7 +384,7 @@ class App_Hearth_Helper:
     def header(self,layout):         
         vuetify.VSpacer()
         #FILE
-        with vuetify.VBtn(icon=True,click=self.update_Page,to="/heart"):
+        with vuetify.VBtn(icon=True,click=(self.update_Page,"[1, $event]"),to="/heart"):
             # vuetify.VIcon("mdi-heart-settings",click=self.update_heart_icon)
             self.server.ui.heart_icon(layout)
             self.update_heart_icon()
@@ -396,7 +399,7 @@ class App_Hearth_Helper:
             style="max-width: 300px;",
         )
         vuetify.VSpacer()
-        with vuetify.VBtn(icon=True,click=self.update_Page,to="/data"):
+        with vuetify.VBtn(icon=True,click=(self.update_Page,"[2, $event]"),to="/data"):
             self.server.ui.chart_icon(layout)
             self.update_chart_icon()
 
@@ -411,7 +414,7 @@ class App_Hearth_Helper:
         )
 
         vuetify.VSpacer()
-        with vuetify.VBtn(icon=True,to="/"):
+        with vuetify.VBtn(icon=True,click=(self.update_Page,"[0, $event]"),to="/"):
             vuetify.VIcon("mdi-restore")
 
         vuetify.VDivider(vertical=True, classes="mx-2")
