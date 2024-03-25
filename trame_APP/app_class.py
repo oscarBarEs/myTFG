@@ -141,7 +141,8 @@ class App_Hearth_Helper:
         self.isPage = not self.isPage
         self.update_heart_icon()
         self.update_chart_icon()
-
+        print("Actores")
+        print(self.pl.meshes)
 # --------------------------------------------------------------------------------
 # HEART PIPELINE
 # --------------------------------------------------------------------------------
@@ -175,12 +176,30 @@ class App_Hearth_Helper:
                 self._actor = self.pl.add_mesh(ds, name=file.name,opacity=0)
                 cell_center = self.mesh.cell_centers().points[0]
                 self.update_scalar_dropdown()
+                if hasattr(self, "_data"):
+                    self.setArritmicView()
+
             else:
                 self.pl.add_mesh(ds, name=file.name)
 
             self.pl.reset_camera()
             self.ctrl.view_update()
             # self._update_UI()
+    def setArritmicView(self):
+
+        for dat in self.data:
+            print(dat)
+            idReen =int(dat["Id's Reen"])
+            idPac =int(dat["id_extraI"])
+            cx = self.mesh.points[idReen]   
+            # cxNormal =  arrows[idReen]
+            reenName= "Reen"+str(idReen)
+            # if self.pl.has_actor(reenName):
+            #     return
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName,opacity=0)
+            cy = self.mesh.points[idPac]
+            pacName= "Pac"+str(idPac)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,opacity=0)
 
 
     @change("log_scale")
@@ -189,8 +208,8 @@ class App_Hearth_Helper:
         self.ctrl.view_update()
 
     @change("scalars")
-    def set_scalars(self, **kwargs):
-        scalars=self.mesh.active_scalars_name
+    def set_scalars(self,scalars, **kwargs):
+        # scalars=self.mesh.active_scalars_name
         self.actor.mapper.array_name = scalars
         self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
         self.ctrl.view_update()
@@ -211,6 +230,8 @@ class App_Hearth_Helper:
                 self._data = fetch_data(file.name)
                 self.update_data_table()
                 self.update_charts_dropdown()
+                if hasattr(self, "_mesh"):
+                    self.setArritmicView()
             except UnicodeDecodeError:
                 print(f"Error: File {file.name} is not in a valid format or encoding.")
                 # Handle the error appropriately here
@@ -220,7 +241,8 @@ class App_Hearth_Helper:
     @change("selection")
     def selection_change_tos(self,selection=[], **kwargs):
         # Chart
-        
+
+
         if self.chartType == "Count Segmentos Reen":
             chart = selection_change_tos(selection)
         else:
@@ -238,34 +260,22 @@ class App_Hearth_Helper:
             print(self.arritmias)
             for x in selection:
                 idReen =int(x["Id's Reen"])
+                reenName= "Reen"+str(idReen)
+                self.pl.renderer.actors[reenName].GetProperty().SetOpacity(1)
+
                 idPac =int(x["id_extraI"])
-                isFound = False
+                pacName= "Pac"+str(idPac)
+                self.pl.renderer.actors[pacName].GetProperty().SetOpacity(1)
 
-                # for arritmia in self.arritmias:
-                #     if arritmia.reen == idReen and arritmia.pacing == idPac:
-                #         print("Ya existe")
-                #         print(arritmia.reen)
-                #         print(idReen)
-                #         isFound = True
-                #         continue
-                #     else:
-                #         newArritnia = Arritmia(idReen,idPac)
-                #         self.arritmias.append(newArritnia)
+            not_selected = [item for item in self.data if item not in selection]
+            for x in not_selected:
+                idReen =int(x["Id's Reen"])
+                reenName= "Reen"+str(idReen)
+                self.pl.renderer.actors[reenName].GetProperty().SetOpacity(0)
 
-                # if not self.arritmias:
-                #     newArritnia = Arritmia(idReen,idPac)
-                #     self.arritmias.append(newArritnia)
-
-                if not isFound:
-                    print(x)
-
-                    cx = self.mesh.points[idReen]   
-                    # cxNormal =  arrows[idReen]
-                    reenName= "Reen"+str(idReen)
-                    self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
-                    cy = self.mesh.points[idPac]
-                    pacName= "Pac"+str(idPac)
-                    self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
+                idPac =int(x["id_extraI"])
+                pacName= "Pac"+str(idPac)
+                self.pl.renderer.actors[pacName].GetProperty().SetOpacity(0)
 
             self.ctrl.view_update()
 
@@ -312,6 +322,13 @@ class App_Hearth_Helper:
 
     def update_scalar_dropdown(self):
         with self.server.ui.list_array as array_list:
+            vuetify.VCardTitle(
+                "Heart Visualization Options", 
+                classes="grey lighten-1 py-1 grey--text text--darken-3",
+                style="user-select: none; cursor: pointer",
+                hide_details=True,
+                dense=True,
+            )
             array_list.clear()
             vuetify.VCheckbox(
                 label="Log Scale",
@@ -321,9 +338,9 @@ class App_Hearth_Helper:
                 outlined=True,
             )
             vuetify.VSelect(
-                            label="Scalars",
+                            label="Mapper",
                             v_model=("scalars", self.mesh.active_scalars_name),
-                            items=("array_list", list(self.mesh.point_data.keys())),
+                            items=("array_mappes", list(self.mesh.point_data.keys())),
                             hide_details=True,
                             dense=True,
                             outlined=True,
@@ -332,7 +349,7 @@ class App_Hearth_Helper:
                         )
             vuetify.VSlider(
                 label="Opacity",
-                v_model=("opacity", 0.0),
+                v_model=("opacity", 0.3),
                 min=0.0,
                 max=1.0,
                 step=0.1)
@@ -345,7 +362,7 @@ class App_Hearth_Helper:
             vuetify.VSelect(
                             label="Scalars",
                             v_model=("chartsType", chartsType[0]),
-                            items=("array_list", chartsType),
+                            items=("array_charts", chartsType),
                             hide_details=True,
                             dense=True,
                             outlined=True,
@@ -465,9 +482,9 @@ class App_Hearth_Helper:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard() as cardDrawer:
-                    with vuetify.VContainer() as containerArray:
-                        self.server.ui.list_array(layout)
-                        self.server.ui.charts_type_array(layout)
+                    self.server.ui.list_array(layout)
+                with vuetify.VCard() as cardDrawer:
+                    self.server.ui.charts_type_array(layout)
                    
         return layout
     
