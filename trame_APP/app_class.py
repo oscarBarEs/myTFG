@@ -57,7 +57,12 @@ class App_Hearth_Helper:
         self.pl
         self.casos = self.casesReader()
         self.chartType =""
+        if self.server.hot_reload:
+            self.server.controller.on_server_reload.add(self._build_ui)
+
         self.ui = self._build_ui()
+        self.state.trame__title = "MyTFG"
+
         self.ctrl.view_update()
     
     
@@ -219,10 +224,12 @@ class App_Hearth_Helper:
 
     @change("data_file_exchange")
     def handle_data(self, data_file_exchange, **kwargs):
+        if data_file_exchange is None:
+            return
         file = ClientFile(data_file_exchange)
         if file.content:
             try:
-                self._data = fetch_data(file.name)
+                self._data = fetch_data(file)
                 self.update_data_table()
                 self.update_charts_dropdown()
                 if hasattr(self, "_mesh"):
@@ -486,7 +493,8 @@ class App_Hearth_Helper:
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard() as cardDrawer:
                     self.server.ui.list_array(layout)
-                with vuetify.VCard() as cardDrawer:
+                vuetify.VDivider(classes="mb-2")
+                with vuetify.VCard() as cardDrawer2:
                     self.server.ui.charts_type_array(layout)
                    
         return layout
