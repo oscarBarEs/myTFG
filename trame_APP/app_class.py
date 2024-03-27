@@ -1,6 +1,7 @@
 import os
 import tempfile
 from enum import Enum
+import re 
 
 import vtk
 import pyvista as pv
@@ -36,12 +37,11 @@ class Arritmia:
         self.pacing = pacing
 
 class dataArritmic:
-    def __init_(self,ventricle,endo,core,res,pname):
+    def __init__(self,ventricle,endo,core,res):
         self.ventricle = ventricle
         self.endo = endo
         self.core = core
         self.res = res
-        self.pname = pname
 
 
 
@@ -67,51 +67,7 @@ class App_Hearth_Helper:
     
     
 
-    def casesReader(self):
-        casos = []
-        rootFolder = os.path.join(os.path.dirname(__file__), 'casos')
-        for root, dirs, files in os.walk(rootFolder):
-            for file in files:
-                ventricle = None
-                endo = None
-                core = None
-                res = None
-                if file.endswith(".vtk"):
-                    if file.startswith("ventricle"):
-                        ventricle = file
-                        print(file)
-                    elif file.startswith("Endo"):  
-                        endo = file
-                        print(file)
-                    elif file.startswith("Core"):
-                        core = file                      
-                        print(file)
-                    
-                elif file.endswith(".txt"):
-                    res = file
-                    print(file)
-                if ventricle and endo and core and res:
-                    pname = os.path.basename(root)
 
-                    ventricle = os.path.join(root,ventricle)
-                    ven = self.getVtkActor(ventricle)
-
-                    endo = os.path.join(root,endo)
-                    end= self.getVtkActor(endo)
-
-                    core = os.path.join(root,core)
-                    cor = self.getVtkActor(core)
-
-                    res = os.path.join(root,res)
-   
-                    ventricle = pv.read(ventricle)
-                    endo = pv.read(endo)
-                    core = pv.read(core)
-                    res = fetch_data(res)
-
-                    casos.append(dataArritmic(ven,end,cor,res,pname))
-                
-        return casos
     
 
     @property
@@ -147,18 +103,13 @@ class App_Hearth_Helper:
 # HEART PIPELINE
 # --------------------------------------------------------------------------------
     def getVtkActor(self,ventricle_file):
-        file = ClientFile(ventricle_file)
-        if file.content:
-            bytes = file.content
-            with tempfile.NamedTemporaryFile(suffix=file.name) as path:
-                with open(path.name, 'wb') as f:
-                    f.write(bytes)
-                ds = pv.read(path.name)
-                mesh=ds
-                actor = self.pl.add_mesh(ds, name=file.name)
-            
-                ventricle = VentricleVTK(mesh,actor)
-                return ventricle
+
+            ds = pv.read(ventricle_file)
+            mesh=ds
+            actor = self.pl.add_mesh(ds,name = ventricle_file,opacity=1)
+        
+            ventricle = VentricleVTK(mesh,actor)
+            return ventricle
         
 
     @change("heart_file_exchange")
@@ -286,9 +237,6 @@ class App_Hearth_Helper:
 # --------------------------------------------------------------------------------
 
 
-    @change("rootFolder")
-    def handlePAtients(self,rootFolder, **kwargs):
-        print(rootFolder) 
 
 # --------------------------------------------------------------------------------
 # DYNAMIC LAYOUT
@@ -434,7 +382,136 @@ class App_Hearth_Helper:
         vuetify.VProgressLinear(
             indeterminate=True, absolute=True, bottom=True, active=("trame__busy",)
         )
-         
+    
+    def actives_change(self,ids, **kwargs):
+        _id = ids[0]
+        if  "caso_" in _id:
+            print("Caso:")
+            print(_id)
+            self.pl.clear() 
+            rootFolder = next((root for id, root in self.casos if id == _id), None)
+            for root, dirs, files in os.walk(rootFolder):
+                for file in files:
+                    ventricle = None
+                    endo = None
+                    core = None
+                    res = None
+                    # Print the names of the files in the root
+                    for file in os.listdir(root):
+                        print(file)
+                        if file.endswith(".vtk"):
+                            if file.startswith("ventricle"):
+                                ventricle = file
+                                print(file)
+                            elif file.startswith("Endo"):  
+                                endo = file
+                                print(file)
+                            elif file.startswith("Core"):
+                                core = file                      
+                                print(file)
+                            
+                        elif file.endswith(".txt"):
+                            res = file
+                            print(file)
+                    if ventricle and endo and core and res:
+
+                        ventricle = os.path.join(root,ventricle)
+                        ven = self.getVtkActor(ventricle)
+                        self._mesh = ven.mesh
+                        self._actor = ven.actor
+
+                        endo = os.path.join(root,endo)
+                        end= self.getVtkActor(endo)
+
+                        core = os.path.join(root,core)
+                        cor = self.getVtkActor(core)
+
+                        res = os.path.join(root,res)
+    
+                        ventricle = pv.read(ventricle)
+                        endo = pv.read(endo)
+                        core = pv.read(core)
+                        res = self.fetch_data_autoRead(res)
+                        self._data = res
+
+                        self.currentCase = dataArritmic(ven,end,cor,res) 
+                        self.update_scalar_dropdown()
+                        self.update_data_table()
+                        self.update_charts_dropdown()
+                        self.pl.reset_camera()
+                        self.ctrl.view_update()                        
+                     
+    def fetch_data_autoRead(self,json_file):
+        data = {}
+        print(json_file)
+        with open(json_file, 'r', encoding='utf-8') as file:
+            lines = iter(file.readlines())
+            for line in lines:
+                if line.strip() == "PARÁMETROS DE SIMULACIONES CON REENTRADA:":
+                    break
+            datos = []
+            for line in lines:
+                
+                parts = line.split('->')
+                if(parts.__len__() > 2):
+                    data = {}
+                    subparts = parts[2].split(',')
+                    for i, subpart in enumerate(subparts):
+                        if ':' in subpart:
+                            key, value = subpart.split(':')
+                            data[key.strip()] = value.strip()
+                        else:
+                            split_subpart = re.split('(\d.*)', subpart, maxsplit=1)
+                            if len(split_subpart) > 1:
+                                key = split_subpart[0].strip()
+                                value = split_subpart[1].strip()
+                                data[key] = value
+                    datos.append(data)
+        return datos
+    def casesReader(self):
+        casos = []
+        rootFolder = os.path.join(os.path.dirname(__file__), 'casos')
+        for root, dirs, files in os.walk(rootFolder):
+            for file in files:
+                ventricle = None
+                endo = None
+                core = None
+                res = None
+                if file.endswith(".vtk"):
+                    if file.startswith("ventricle"):
+                        ventricle = file
+                        print(file)
+                    elif file.startswith("Endo"):  
+                        endo = file
+                        print(file)
+                    elif file.startswith("Core"):
+                        core = file                      
+                        print(file)
+                    
+                elif file.endswith(".txt"):
+                    res = file
+                    print(file)
+                if ventricle and endo and core and res:
+                    pname = os.path.basename(root)
+
+                    ventricle = os.path.join(root,ventricle)
+                    ven = self.getVtkActor(ventricle)
+
+                    endo = os.path.join(root,endo)
+                    end= self.getVtkActor(endo)
+
+                    core = os.path.join(root,core)
+                    cor = self.getVtkActor(core)
+
+                    res = os.path.join(root,res)
+                    res = fetch_data(res)
+                    self.setArritmicView()
+                    
+                    casos.append(dataArritmic(ven,end,cor,res,pname))
+                    self.pl.reset_camera()
+                    self.ctrl.view_update()                    
+                
+        return casos
 
     def _build_ui(self):
         with RouterViewLayout(self.server, "/"):
@@ -442,38 +519,41 @@ class App_Hearth_Helper:
                 card.classes="fill-width"
                 vuetify.VCardTitle("Main Page")
                 vuetify.VCardText(children=["Add the file heart to see it, and the file data to see the results. I interact with the data to see the results"])
-                vuetify.VFileInput(
-                    show_size=True,
-                    small_chips=True,
-                    truncate_length=25,
-                    v_model=("rootFolder", None),
-                    dense=True,
-                    hide_details=True,
-                    style="max-width: 300px;",
-                )
+
                 def generate_sources(root_dir):
                     sources = []
                     id_counter = 1
                     dir_ids = {root_dir: "0"}  # Keep track of directory ids
 
                     for root, dirs, files in os.walk(root_dir):
+                        depth = root[len(root_dir):].count(os.sep)
+
                         for dir in dirs:
                             dir_path = os.path.join(root, dir)
                             parent_id = dir_ids[root]  # Get the id of the parent directory
                             dir_ids[dir_path] = str(id_counter)  # Store the id of the current directory
-                            case = {"id": str(id_counter), "parent": parent_id, "visible": 1, "name": dir}
+                            if depth > 0:  # If the directory is a subfolder, add 100 to its id
+                                id_caso = "caso_" + str(id_counter)
+                                case = {"id": id_caso, "parent": parent_id, "visible": 1, "name": dir}
+                                self.casos.append((id_caso, dir_path))
+                            else:
+                                id_doc = "doc_" + str(id_counter)
+                                case = {"id": str(id_counter), "parent": parent_id, "visible": 1, "name": dir}
+                            
                             sources.append(case)
                             id_counter += 1
 
                     return sources
-                
+                self.casos = []  # Array to store the id and root of each "caso"
+       
                 root_dir = "./casos"  # Cambia esto a la ruta de tu directorio raíz
-                sources = generate_sources(root_dir)            
+                self.sources = generate_sources(root_dir)            
                 trame.GitTree(
                     sources=(
                         "pipeline",
-                        sources,
-                    )
+                        self.sources,
+                    ),
+                    actives_change=(self.actives_change, "[$event]")
                 )
 
         # --------------------------------------------------------------------------------
