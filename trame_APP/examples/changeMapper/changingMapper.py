@@ -15,10 +15,14 @@ actor = pl.add_mesh(mesh, name="ventricle_Tagged.vtk")
 pl.reset_camera()
 
 
+
 @state.change("scalars")
 def set_scalars(scalars, **kwargs):
-    actor.mapper.array_name = scalars
+    # 
     actor.mapper.scalar_range = mesh.get_data_range(scalars)
+    actor.mapper.array_name = scalars
+    actor.mapper.lookup_table.plot()
+
     ctrl.view_update()
 
 with SinglePageLayout(server) as layout:
@@ -47,5 +51,6 @@ with SinglePageLayout(server) as layout:
                 def view_update(**kwargs):
                     local.update(**kwargs)                
                 ctrl.view_update = view_update            
+
 
 server.start()
