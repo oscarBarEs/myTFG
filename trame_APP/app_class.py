@@ -10,7 +10,7 @@ from pyvista.trame.ui import plotter_ui
 from trame.app import get_server
 from trame.app.file_upload import ClientFile
 from trame.ui.router import RouterViewLayout
-from trame.widgets import router
+from trame.widgets import router,trame
 
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
@@ -385,8 +385,8 @@ class App_Hearth_Helper:
 # UI LAYOUT
 # --------------------------------------------------------------------------------
     
-    def _build_ui(self):
-       return self._update_UI()
+    
+       
     
     def header(self,layout):         
         vuetify.VSpacer()
@@ -436,7 +436,7 @@ class App_Hearth_Helper:
         )
          
 
-    def _update_UI(self):
+    def _build_ui(self):
         with RouterViewLayout(self.server, "/"):
             with vuetify.VCard() as card:
                 card.classes="fill-width"
@@ -451,6 +451,31 @@ class App_Hearth_Helper:
                     hide_details=True,
                     style="max-width: 300px;",
                 )
+                def generate_sources(root_dir):
+                    sources = []
+                    id_counter = 1
+                    dir_ids = {root_dir: "0"}  # Keep track of directory ids
+
+                    for root, dirs, files in os.walk(root_dir):
+                        for dir in dirs:
+                            dir_path = os.path.join(root, dir)
+                            parent_id = dir_ids[root]  # Get the id of the parent directory
+                            dir_ids[dir_path] = str(id_counter)  # Store the id of the current directory
+                            case = {"id": str(id_counter), "parent": parent_id, "visible": 1, "name": dir}
+                            sources.append(case)
+                            id_counter += 1
+
+                    return sources
+                
+                root_dir = "./casos"  # Cambia esto a la ruta de tu directorio raíz
+                sources = generate_sources(root_dir)            
+                trame.GitTree(
+                    sources=(
+                        "pipeline",
+                        sources,
+                    )
+                )
+
         # --------------------------------------------------------------------------------
         # HEART LAYOUT
         # --------------------------------------------------------------------------------
