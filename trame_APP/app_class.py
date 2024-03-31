@@ -55,7 +55,6 @@ class App_Hearth_Helper:
         self.isPage=0
         self.arritmias = []
         self.pl
-        self.casos = self.casesReader()
         self.chartType =""
         if self.server.hot_reload:
             self.server.controller.on_server_reload.add(self._build_ui)
@@ -147,10 +146,10 @@ class App_Hearth_Helper:
             reenName= "Reen"+str(idReen)
             # if self.pl.has_actor(reenName):
             #     return
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName,opacity=0)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
             cy = self.mesh.points[idPac]
             pacName= "Pac"+str(idPac)
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,opacity=0)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
 
 
     @change("log_scale")
@@ -214,21 +213,21 @@ class App_Hearth_Helper:
             for x in selection:
                 idReen =int(x["Id's Reen"])
                 reenName= "Reen"+str(idReen)
-                self.pl.renderer.actors[reenName].GetProperty().SetOpacity(1)
+                self.pl.renderer.actors[reenName].visibility = 1
 
                 idPac =int(x["id_extraI"])
                 pacName= "Pac"+str(idPac)
-                self.pl.renderer.actors[pacName].GetProperty().SetOpacity(1)
+                self.pl.renderer.actors[pacName].visibility = 1
 
             not_selected = [item for item in self.data if item not in selection]
             for x in not_selected:
                 idReen =int(x["Id's Reen"])
                 reenName= "Reen"+str(idReen)
-                self.pl.renderer.actors[reenName].GetProperty().SetOpacity(0)
+                self.pl.renderer.actors[reenName].visibility = 0
 
                 idPac =int(x["id_extraI"])
                 pacName= "Pac"+str(idPac)
-                self.pl.renderer.actors[pacName].GetProperty().SetOpacity(0)
+                self.pl.renderer.actors[pacName].visibility = 0
 
             self.ctrl.view_update()
 
@@ -311,7 +310,39 @@ class App_Hearth_Helper:
                 min=0.0,
                 max=1.0,
                 step=0.1)
-            
+            vuetify.VDivider()
+            with vuetify.VContainer():
+                with vuetify.VRow() as visibilityMeshes:
+                    # 
+                    vuetify.VSpacer()
+                    vuetify.VCheckbox(
+                        label="Endo",
+                        v_model=("endoVisibilty", True),
+                        hide_details=True,
+                        dense=True,
+                        outlined=True)
+                    vuetify.VCheckbox(
+                        label="Core",
+                        v_model=("coreVisibilty", True),
+                        hide_details=True,
+                        dense=True,
+                        outlined=True)
+                    vuetify.VSpacer()
+            vuetify.VSpacer()
+            vuetify.VDivider()
+
+    @change("endoVisibilty")
+    def set_endo_visibility(self,endoVisibilty, **kwargs):
+        if self.currentCase is not None:
+            self.currentCase.endo.actor.visibility = endoVisibilty
+            self.ctrl.view_update()
+    @change("coreVisibilty")
+    def set_core_visibility(self,coreVisibilty, **kwargs):
+        if self.currentCase is not None:
+            self.currentCase.core.actor.visibility = coreVisibilty
+            self.ctrl.view_update()
+                
+
     def update_charts_dropdown(self):
         with self.server.ui.charts_type_array as charts_type_array:
             #self.server.ui.list_array.clear()
@@ -389,6 +420,7 @@ class App_Hearth_Helper:
             print("Caso:")
             print(_id)
             self.pl.clear() 
+            self._data = None
             rootFolder = next((root for id, root in self.casos if id == _id), None)
             for root, dirs, files in os.walk(rootFolder):
                 for file in files:
@@ -434,7 +466,8 @@ class App_Hearth_Helper:
                         res = self.fetch_data_autoRead(res)
                         self._data = res
 
-                        self.currentCase = dataArritmic(ven,end,cor,res) 
+                        self.currentCase = dataArritmic(ven,end,cor,res)
+                        self.setArritmicView()                         
                         self.update_scalar_dropdown()
                         self.update_data_table()
                         self.update_charts_dropdown()
@@ -468,50 +501,6 @@ class App_Hearth_Helper:
                                 data[key] = value
                     datos.append(data)
         return datos
-    def casesReader(self):
-        casos = []
-        rootFolder = os.path.join(os.path.dirname(__file__), 'casos')
-        for root, dirs, files in os.walk(rootFolder):
-            for file in files:
-                ventricle = None
-                endo = None
-                core = None
-                res = None
-                if file.endswith(".vtk"):
-                    if file.startswith("ventricle"):
-                        ventricle = file
-                        print(file)
-                    elif file.startswith("Endo"):  
-                        endo = file
-                        print(file)
-                    elif file.startswith("Core"):
-                        core = file                      
-                        print(file)
-                    
-                elif file.endswith(".txt"):
-                    res = file
-                    print(file)
-                if ventricle and endo and core and res:
-                    pname = os.path.basename(root)
-
-                    ventricle = os.path.join(root,ventricle)
-                    ven = self.getVtkActor(ventricle)
-
-                    endo = os.path.join(root,endo)
-                    end= self.getVtkActor(endo)
-
-                    core = os.path.join(root,core)
-                    cor = self.getVtkActor(core)
-
-                    res = os.path.join(root,res)
-                    res = fetch_data(res)
-                    self.setArritmicView()
-                    
-                    casos.append(dataArritmic(ven,end,cor,res,pname))
-                    self.pl.reset_camera()
-                    self.ctrl.view_update()                    
-                
-        return casos
 
     def _build_ui(self):
         with RouterViewLayout(self.server, "/"):
