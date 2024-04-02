@@ -24,6 +24,11 @@ from components.tableOfSimulation import table_of_simulation, selection_change_t
 from components.utils.txtToJson import fetch_data
 #from components.page.header import header
 
+from vtkmodules.vtkRenderingCore import (
+vtkCellPicker)
+
+
+
 pv.OFF_SCREEN = True
 
 class VentricleVTK:
@@ -55,6 +60,11 @@ class App_Hearth_Helper:
         self.isPage=0
         self.arritmias = []
         self.pl
+        self.pl.enable_point_picking(callback=self.callback,left_clicking=True)  # Make the 3D window unpickable
+
+        self.picker = vtkCellPicker()
+
+
         self.chartType =""
         if self.server.hot_reload:
             self.server.controller.on_server_reload.add(self._build_ui)
@@ -66,8 +76,16 @@ class App_Hearth_Helper:
     
     
 
+    def callback(self,point):
+        """Create a cube and a label at the click point."""
+        print("LLega")
+        print("LLegaFin")
+        self.update_arritmic_info("info")
 
-    
+    def update_arritmic_info(self,arritmic_info):
+        with self.server.ui.arritmic_info as arritmic_info:
+            arritmic_info.clear()
+            vuetify.VCardText(children=[arritmic_info])
 
     @property
     def ctrl(self):
@@ -146,10 +164,10 @@ class App_Hearth_Helper:
             reenName= "Reen"+str(idReen)
             # if self.pl.has_actor(reenName):
             #     return
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName, pickable=True)
             cy = self.mesh.points[idPac]
             pacName= "Pac"+str(idPac)
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
 
 
     @change("log_scale")
@@ -501,7 +519,16 @@ class App_Hearth_Helper:
                                 data[key] = value
                     datos.append(data)
         return datos
+    def right_button_pressed(self,event):
+        p = event["position"]
+        x = p["x"]
+        y = p["y"]
+        z = p["z"]
 
+        # self.picker.Pick(x, y, z, renderer)
+        color = (1, 0, 0) if self.picker.GetActors().GetNumberOfItems() == 0 else (0, 1, 0)
+        # create_sphere(self.picker.GetPickPosition(), color)
+        self.ctrl.view_update()
     def _build_ui(self):
         with RouterViewLayout(self.server, "/"):
             with vuetify.VCard() as card:
@@ -553,9 +580,13 @@ class App_Hearth_Helper:
             layout.root.classes="fill-height"
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Visualizer")            
-            if not hasattr(self, "_actor"):
-                vuetify.VCardText(children=["Add a heart file to start <br> Red = Reeentry, Blue = Pacing"])             
-            with vtkTrame.VtkLocalView(self.pl.ren_win)as local:
+                vuetify.VCardText(children=["Add a heart file to start <br> Red = Reeentry, Blue = Pacing"]) 
+                self.server.ui.arritmic_info(layout)
+
+            with vtkTrame.VtkLocalView(self.pl.ren_win,
+                            interactor_events=("event_types", ["RightButtonPress"]),
+                            RightButtonPress=(self.right_button_pressed, "[utils.vtk.event($event)]")
+                )as local:
                     def view_update(**kwargs):
                         local.update(**kwargs)                
             self.ctrl.view_update = view_update
