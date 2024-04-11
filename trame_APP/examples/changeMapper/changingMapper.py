@@ -11,7 +11,7 @@ state, ctrl = server.state, server.controller
 
 pl = pv.Plotter()
 mesh = pv.read("ventricle_Tagged.vtk")
-actor = pl.add_mesh(mesh, name="ventricle_Tagged.vtk")
+actor = pl.add_mesh(mesh, name="ventricle_Tagged.vtk",scalars="17_AHA")
 pl.reset_camera()
 
 
