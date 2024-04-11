@@ -154,7 +154,7 @@ class App_Hearth_Helper:
             self.ctrl.view_update()
             # self._update_UI()
     def setArritmicView(self):
-
+        array_arritmics=[]
         for dat in self.data:
             print(dat)
             idReen =int(dat["Id's Reen"])
@@ -167,8 +167,10 @@ class App_Hearth_Helper:
             self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName, pickable=True)
             cy = self.mesh.points[idPac]
             pacName= "Pac"+str(idPac)
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
 
+            # array_arritmics.append(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
+        self.arritmics = pv.MultiBlock(array_arritmics)
 
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
@@ -466,21 +468,26 @@ class App_Hearth_Helper:
                     if ventricle and endo and core and res:
 
                         ventricle = os.path.join(root,ventricle)
-                        ven = self.getVtkActor(ventricle)
+
+                        ds = pv.read(ventricle)
+                        mesh=ds
+
+                        actor = self.pl.add_mesh(ds,name = ventricle,opacity=1,scalars="17_AHA")
+                        ven = VentricleVTK(mesh,actor)
+
                         self._mesh = ven.mesh
                         self._actor = ven.actor
 
                         endo = os.path.join(root,endo)
                         end= self.getVtkActor(endo)
+                        self.pl.remove_scalar_bar("subpartID")
 
+                        
                         core = os.path.join(root,core)
                         cor = self.getVtkActor(core)
 
                         res = os.path.join(root,res)
     
-                        ventricle = pv.read(ventricle)
-                        endo = pv.read(endo)
-                        core = pv.read(core)
                         res = self.fetch_data_autoRead(res)
                         self._data = res
 
