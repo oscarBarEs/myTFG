@@ -12,6 +12,10 @@ import numpy as np
 
 import pyvista as pv
 
+from trame.app import get_server
+from trame.ui.vuetify2 import SinglePageLayout
+from trame.widgets import vuetify2 as vuetify,vtk as vtkTrame
+
 ###############################################################################
 # Create a MultiBlock Dataset
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,6 +55,8 @@ pl = pv.Plotter()
 actor, mapper = pl.add_composite(blocks, color="w", pbr=True, metallic=True)
 
 
+
+
 def callback(index, *args):
     """Change a block to red if color is unset, and back to the actor color if set."""
     if mapper.block_attr[index].color is None:
@@ -61,5 +67,31 @@ def callback(index, *args):
 
 pl.enable_block_picking(callback, side="left")
 pl.background_color = "w"
-pl.show()
+# pl.show()
 
+server = get_server()
+state, ctrl = server.state, server.controller
+
+
+def on_click(self, event):
+    if event is None:
+        print("Click on: --nothing--")
+    # else:
+    #     print(f"Click on: {mapper.get(event.get('remoteId'))}")
+
+
+with SinglePageLayout(server) as layout:
+    with layout.content:
+        with vuetify.VContainer(
+            fluid=True, classes="pa-0 fill-height", style="position: relative;"
+        ):
+
+            with vtkTrame.VtkLocalView(pl.ren_win,
+                                       click=(on_click, "[$event]"))as local:
+                get_scene_object_id = local.get_scene_object_id   
+
+                def view_update(**kwargs):
+                    local.update(**kwargs)                
+                ctrl.view_update = view_update  
+
+server.start()                
