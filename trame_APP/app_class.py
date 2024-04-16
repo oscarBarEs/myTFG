@@ -154,7 +154,7 @@ class App_Hearth_Helper:
             self.ctrl.view_update()
             # self._update_UI()
     def setArritmicView(self):
-        array_arritmics=[]
+        array_arritmics={}
         for dat in self.data:
             print(dat)
             idReen =int(dat["Id's Reen"])
@@ -164,13 +164,29 @@ class App_Hearth_Helper:
             reenName= "Reen"+str(idReen)
             # if self.pl.has_actor(reenName):
             #     return
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName, pickable=True)
+            array_arritmics[reenName] = pv.Sphere(radius=1.5,center=cx)
+
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
             cy = self.mesh.points[idPac]
             pacName= "Pac"+str(idPac)
-
+            array_arritmics[pacName] = pv.Sphere(radius=1.5,center=cy)
             # array_arritmics.append(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
-        self.arritmics = pv.MultiBlock(array_arritmics)
+            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
+        
+        # self.arritmics = pv.MultiBlock(array_arritmics)
+        # actor, mapper = self.pl.add_composite(self.arritmics, pbr=True, color="b")
+        # def callback(index, *args):
+        #     """Change a block to red if color is unset, and back to the actor color if set."""
+        #     if mapper.block_attr[index].color is None:
+        #         mapper.block_attr[index].color = "r"
+        #     else:
+        #         mapper.block_attr[index].color = None
+
+
+        # self.pl.enable_block_picking(callback, side="left")
+        # for i in range(int(self.arritmics.n_blocks)):
+        #     nameOdArritmic = self.arritmics.get_block_name(i)
+        #     mapper.block_attr[i].color = "b"
 
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
@@ -181,8 +197,11 @@ class App_Hearth_Helper:
     def set_scalars(self,scalars, **kwargs):
         # scalars=self.mesh.active_scalars_name
         self.actor.mapper.array_name = scalars
+        self.mesh.set_active_scalars(scalars)   ## Update en la malla !!
         self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
         self.ctrl.view_update()
+
+
 
     @change("opacity")
     def set_opacity(self,opacity, **kwargs):
@@ -482,7 +501,7 @@ class App_Hearth_Helper:
                         end= self.getVtkActor(endo)
                         self.pl.remove_scalar_bar("subpartID")
 
-                        
+
                         core = os.path.join(root,core)
                         cor = self.getVtkActor(core)
 
