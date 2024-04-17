@@ -1,44 +1,18 @@
 from trame.app import get_server
 from trame.ui.html import DivLayout
 from trame.widgets import html, client, vtk as vtk_widgets
+import pyvista as pv
 
-from vtkmodules.vtkFiltersSources import vtkConeSource, vtkSphereSource
-from vtkmodules.vtkRenderingCore import (
-    vtkRenderer,
-    vtkRenderWindow,
-    vtkRenderWindowInteractor,
-    vtkPolyDataMapper,
-    vtkActor,
-)
+pv.OFF_SCREEN = True
 
 
 class PickingExample:
     def __init__(self, server=None):
         self.server = get_server(server, client_type="vue3")
-
+        self.pl = pv.Plotter(off_screen=True)
         # VTK
-        renderer = vtkRenderer()
-        renderWindow = vtkRenderWindow()
-        renderWindow.AddRenderer(renderer)
-
-        cone_source = vtkConeSource()
-        cone_mapper = vtkPolyDataMapper()
-        cone_actor = vtkActor()
-        cone_mapper.SetInputConnection(cone_source.GetOutputPort())
-        cone_actor.SetMapper(cone_mapper)
-        renderer.AddActor(cone_actor)
-
-        sphere_source = vtkSphereSource()
-        sphere_mapper = vtkPolyDataMapper()
-        sphere_actor = vtkActor()
-        sphere_mapper.SetInputConnection(sphere_source.GetOutputPort())
-        sphere_actor.SetMapper(sphere_mapper)
-        renderer.AddActor(sphere_actor)
-
-        renderer.ResetCamera()
-        renderWindow.Render()
-
-        self.render_window = renderWindow
+        cone_actor = self.pl.add_mesh(pv.Cone( height=0.5,radius=0.2), name="Cone",color="yellow")
+        sphere_actor = self.pl.add_mesh(pv.Sphere(radius=0.25), name="Sphere",color="red")
 
         # UI
         self.ui = self._build_ui()
@@ -83,7 +57,7 @@ class PickingExample:
             )
 
             with vtk_widgets.VtkLocalView(
-                self.render_window,
+                self.pl.ren_win,
                 picking_modes=("picking_modes", []),
                 select=(self.on_select, "[$event]"),
                 hover=(self.on_hover, "[$event]"),
