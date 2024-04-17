@@ -60,10 +60,8 @@ class App_Hearth_Helper:
         self.isPage=0
         self.arritmias = []
         self.pl
-        self.pl.enable_point_picking(callback=self.callback,left_clicking=True)  # Make the 3D window unpickable
 
-        self.picker = vtkCellPicker()
-
+        self.last_node_clicked = None
 
         self.chartType =""
         if self.server.hot_reload:
@@ -75,12 +73,6 @@ class App_Hearth_Helper:
         self.ctrl.view_update()
     
     
-
-    def callback(self,point):
-        """Create a cube and a label at the click point."""
-        print("LLega")
-        print("LLegaFin")
-        self.update_arritmic_info("info")
 
     def update_arritmic_info(self,arritmic_info):
         with self.server.ui.arritmic_info as arritmic_info:
@@ -97,7 +89,6 @@ class App_Hearth_Helper:
     @property
     def pl(self):
         if not hasattr(self, "_pl"):
-            print("pl2")
             self._pl = pv.Plotter()
         return self._pl
     @property
@@ -154,39 +145,27 @@ class App_Hearth_Helper:
             self.ctrl.view_update()
             # self._update_UI()
     def setArritmicView(self):
-        array_arritmics={}
+        self.vtk_mapping={}
         for dat in self.data:
-            print(dat)
             idReen =int(dat["Id's Reen"])
             idPac =int(dat["id_extraI"])
             cx = self.mesh.points[idReen]   
             # cxNormal =  arrows[idReen]
-            reenName= "Reen"+str(idReen)
+            reenName= "Reen"+str(idReen) + "_" + str(dat["idReentrada"])
             # if self.pl.has_actor(reenName):
             #     return
-            array_arritmics[reenName] = pv.Sphere(radius=1.5,center=cx)
+            
+            reenActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
+            self.vtk_mapping[self.get_scene_object_id(reenActor)] = reenName
 
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
+            
             cy = self.mesh.points[idPac]
-            pacName= "Pac"+str(idPac)
-            array_arritmics[pacName] = pv.Sphere(radius=1.5,center=cy)
-            # array_arritmics.append(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName,pickable=True)
-            self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
-        
-        # self.arritmics = pv.MultiBlock(array_arritmics)
-        # actor, mapper = self.pl.add_composite(self.arritmics, pbr=True, color="b")
-        # def callback(index, *args):
-        #     """Change a block to red if color is unset, and back to the actor color if set."""
-        #     if mapper.block_attr[index].color is None:
-        #         mapper.block_attr[index].color = "r"
-        #     else:
-        #         mapper.block_attr[index].color = None
+            pacName= "Pac"+str(idPac)+ "_" + str(dat["idReentrada"])
+            pacActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
+            
+            self.vtk_mapping[self.get_scene_object_id(pacActor)] = pacName
 
 
-        # self.pl.enable_block_picking(callback, side="left")
-        # for i in range(int(self.arritmics.n_blocks)):
-        #     nameOdArritmic = self.arritmics.get_block_name(i)
-        #     mapper.block_attr[i].color = "b"
 
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
@@ -243,37 +222,57 @@ class App_Hearth_Helper:
         if hasattr(self, "_mesh"):
             newMesh = self.mesh.extract_surface()
             arrows = newMesh.point_normals
-            print("Num Normales")
-            print(len(arrows))
-            print("Num Puntos")
-            print(len(self.mesh.points))
-            print("Arritmias")
-            print(self.arritmias)
             for x in selection:
                 idReen =int(x["Id's Reen"])
-                reenName= "Reen"+str(idReen)
+                reenName= "Reen"+str(idReen)+ "_" + str(x["idReentrada"])
                 self.pl.renderer.actors[reenName].visibility = 1
 
                 idPac =int(x["id_extraI"])
-                pacName= "Pac"+str(idPac)
+                pacName= "Pac"+str(idPac)+ "_" + str(x["idReentrada"])
                 self.pl.renderer.actors[pacName].visibility = 1
 
             not_selected = [item for item in self.data if item not in selection]
             for x in not_selected:
                 idReen =int(x["Id's Reen"])
-                reenName= "Reen"+str(idReen)
+                reenName= "Reen"+str(idReen)+ "_" + str(x["idReentrada"])
                 self.pl.renderer.actors[reenName].visibility = 0
 
                 idPac =int(x["id_extraI"])
-                pacName= "Pac"+str(idPac)
+                pacName= "Pac"+str(idPac) + "_" + str(x["idReentrada"])
                 self.pl.renderer.actors[pacName].visibility = 0
 
             self.ctrl.view_update()
 
 # --------------------------------------------------------------------------------
-# FULL INPUT FILE
+# Interactor Pipeline
 # --------------------------------------------------------------------------------
 
+    def on_click(self, event):
+        if event is None:
+            print("Click on: --nothing--")
+        else:
+            nameActor = self.vtk_mapping.get(event.get('remoteId'))
+            print(f"Click on: {nameActor}")
+            mode = "Pac"
+            
+            if "Pac" in nameActor:
+                mode = "Reen"
+            
+            for act in self.pl.renderer.actors:
+                if mode in act:
+                    x = nameActor[nameActor.index("_"):]  # get the substring from the underscore to the end
+                    if x in act:
+                        print(act)
+                        self.pl.renderer.actors[act].prop =pv.Property(color='green') 
+                        if self.last_node_clicked is not None:
+                            if "Pac" in self.last_node_clicked:
+                                self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='red')
+                            else:
+                                self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='blue')
+        
+                        self.last_node_clicked = act
+                        self.ctrl.view_update()
+                        # 
 
 
 # --------------------------------------------------------------------------------
@@ -294,12 +293,11 @@ class App_Hearth_Helper:
                     vuetify.VCardText(children=["Add a data file to start"])
 
     def update_Page(self, *num, **kwargs):
-        print(num[0])
         self.isPage = num[0]
         self.update_heart_icon()
         self.update_chart_icon()
-        print("Actores")
         # print(self.pl.meshes)
+        # print("update")
 
     def update_heart_icon(self):
         with self.server.ui.heart_icon as heart_icon:
@@ -456,8 +454,6 @@ class App_Hearth_Helper:
     def actives_change(self,ids, **kwargs):
         _id = ids[0]
         if  "caso_" in _id:
-            print("Caso:")
-            print(_id)
             self.pl.clear() 
             self._data = None
             rootFolder = next((root for id, root in self.casos if id == _id), None)
@@ -469,21 +465,16 @@ class App_Hearth_Helper:
                     res = None
                     # Print the names of the files in the root
                     for file in os.listdir(root):
-                        print(file)
                         if file.endswith(".vtk"):
                             if file.startswith("ventricle"):
                                 ventricle = file
-                                print(file)
                             elif file.startswith("Endo"):  
                                 endo = file
-                                print(file)
                             elif file.startswith("Core"):
                                 core = file                      
-                                print(file)
                             
                         elif file.endswith(".txt"):
                             res = file
-                            print(file)
                     if ventricle and endo and core and res:
 
                         ventricle = os.path.join(root,ventricle)
@@ -520,18 +511,20 @@ class App_Hearth_Helper:
                      
     def fetch_data_autoRead(self,json_file):
         data = {}
-        print(json_file)
         with open(json_file, 'r', encoding='utf-8') as file:
             lines = iter(file.readlines())
             for line in lines:
                 if line.strip() == "PARÁMETROS DE SIMULACIONES CON REENTRADA:":
                     break
             datos = []
+            x=0
             for line in lines:
                 
                 parts = line.split('->')
                 if(parts.__len__() > 2):
                     data = {}
+                    data["idReentrada"] = x
+                    x+=1                    
                     subparts = parts[2].split(',')
                     for i, subpart in enumerate(subparts):
                         if ':' in subpart:
@@ -610,12 +603,13 @@ class App_Hearth_Helper:
                 self.server.ui.arritmic_info(layout)
 
             with vtkTrame.VtkLocalView(self.pl.ren_win,
-                            interactor_events=("event_types", ["RightButtonPress"]),
-                            RightButtonPress=(self.right_button_pressed, "[utils.vtk.event($event)]")
+                                       picking_modes=("picking_modes", ["click"]),
+                            click=(self.on_click, "[$event]")
                 )as local:
                     def view_update(**kwargs):
                         local.update(**kwargs)                
             self.ctrl.view_update = view_update
+            self.get_scene_object_id = local.get_scene_object_id
 
         # --------------------------------------------------------------------------------
         # DATA LAYOUT

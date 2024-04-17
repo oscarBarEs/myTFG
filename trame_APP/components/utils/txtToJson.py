@@ -17,12 +17,16 @@ def fetch_data(json_file):
                     break
             datos = []
             print("lines",lines)
+            x = 0
             for line in lines:
                 print("line")
                 parts = line.split('->')
                 if(parts.__len__() > 2):
                     data = {}
                     subparts = parts[2].split(',')
+                    data["idReentrada"] = x
+                    x+=1
+
                     for i, subpart in enumerate(subparts):
                         if ':' in subpart:
                             key, value = subpart.split(':')
