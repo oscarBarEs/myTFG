@@ -567,16 +567,7 @@ class App_Hearth_Helper:
                                 data[key] = value
                     datos.append(data)
         return datos
-    def right_button_pressed(self,event):
-        p = event["position"]
-        x = p["x"]
-        y = p["y"]
-        z = p["z"]
 
-        # self.picker.Pick(x, y, z, renderer)
-        color = (1, 0, 0) if self.picker.GetActors().GetNumberOfItems() == 0 else (0, 1, 0)
-        # create_sphere(self.picker.GetPickPosition(), color)
-        self.ctrl.view_update()
     def _build_ui(self):
         with RouterViewLayout(self.server, "/"):
             with vuetify.VCard() as card:
