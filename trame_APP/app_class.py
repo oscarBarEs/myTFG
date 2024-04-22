@@ -201,22 +201,22 @@ class App_Hearth_Helper:
     @change("chartsType")
     def typeOfChart(self,chartsType, **kwargs):
         self.chartType = chartsType
+        self.selection_change_tos(self.state.selection)
+
     @change("selection")
     def selection_change_tos(self,selection=[], **kwargs):
         # Chart
-
-
+        chart = None
         if self.chartType == "Count Segmentos Reen":
             chart = selection_change_tos(selection)
-        else:
+        elif self.chartType == "Onset/Pacing":
             chart = chart_onset_pacing(selection)
-
-        self.ctrl.fig_update(chart)
+        if chart is not None:
+            self.ctrl.fig_update(chart)
         if self.currentCase is not None:
             for x in selection:
                 idReen =int(x["Id's Reen"])
                 reenName= "Reen"+str(idReen)+ "_" + str(x["idReentrada"])
-                print(reenName)
                 self.pl.renderer.actors[reenName].visibility = 1
 
                 idPac =int(x["id_extraI"])
@@ -240,41 +240,42 @@ class App_Hearth_Helper:
 # --------------------------------------------------------------------------------
 
     def colour_back(self):
-        if "Pac" in self.last_node_clicked:
-            self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='blue')
-        else:
-            self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='red')
-        # self.pl.renderer.actors[self.last_node_clicked].mapper.dataset.scale([1.0, 1.0, 1.0], inplace=True)
+        if self.last_node_clicked is not None:
+            if "Pac" in self.last_node_clicked:
+                self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='blue')
+            else:
+                self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='red')
+            # self.pl.renderer.actors[self.last_node_clicked].mapper.dataset.scale([1.0, 1.0, 1.0], inplace=True)
 
     def on_click(self, event):
         if event is None:
             print("Click on: --nothing--")
         else:
             nameActor = self.vtk_mapping.get(event.get('remoteId'))
-            print(f"Click on: {nameActor}")
 
-            if "Reen" in nameActor:
-                mode = "Pac"
-            elif "Pac" in nameActor:
-                mode = "Reen"
-            else:
-                self.colour_back()
-                self.last_node_clicked = None
-                pass
-            
-            for act in self.pl.renderer.actors:
-                if mode in act:
-                    x = nameActor[nameActor.index("_"):]  # get the substring from the underscore to the end
-                    if x in act:
-                        print(act)
-                        scale = 1.1
-                        self.pl.renderer.actors[act].prop =pv.Property(color='green')
-                        # self.pl.renderer.actors[act].mapper.dataset.scale([scale, scale, scale], inplace=True)
+            print("NAME: ",f"Click on: {nameActor}")
+            if nameActor is not None:
+                if "Reen" in nameActor or "Pac" in nameActor:
+                    mode = "Reen"
+                    if "Reen" in nameActor:
+                        mode = "Pac"
 
-                        if self.last_node_clicked is not None:
-                            self.colour_back()
-                        self.last_node_clicked = act
-                        self.ctrl.view_update()
+                    for act in self.pl.renderer.actors:
+                        if mode in act:
+                            x = nameActor[nameActor.index("_"):]  # get the substring from the underscore to the end
+                            if act.endswith(x):
+                                print(x," : ",act)
+                                scale = 1.1
+                                self.pl.renderer.actors[act].prop =pv.Property(color='green')
+                                # self.pl.renderer.actors[act].mapper.dataset.scale([scale, scale, scale], inplace=True)
+
+                                if self.last_node_clicked is not None:
+                                    self.colour_back()
+                                self.last_node_clicked = act
+                                self.ctrl.view_update()
+                else:
+                    self.colour_back()
+                    self.last_node_clicked = None
                         
 
 
@@ -284,7 +285,6 @@ class App_Hearth_Helper:
 
 
     def update_data_table(self):
-        
             with self.server.ui.data_table as data_table:
                 data_table.clear()
                 if  (hasattr(self, "_data")):
@@ -299,8 +299,12 @@ class App_Hearth_Helper:
 
     def update_Page(self, *num, **kwargs):
         self.isPage = num[0]
+
         self.update_heart_icon()
         self.update_chart_icon()
+
+        self.update_drawer_heart()
+        self.update_charts_dropdown()
         # print(self.pl.meshes)
         # print("update")
 
@@ -323,7 +327,7 @@ class App_Hearth_Helper:
     def update_drawer_heart(self):
         with self.server.ui.list_array as array_list:
             array_list.clear()
-            if self.currentCase is not None:
+            if self.currentCase is not None and self.isPage == 1:
                 vuetify.VCardTitle(
                     "Heart Visualization Options", 
                     classes="grey lighten-1 py-1 grey--text text--darken-3",
@@ -341,7 +345,7 @@ class App_Hearth_Helper:
                 )
                 vuetify.VSelect(
                                 label="Mapper",
-                                v_model=("scalars", self.currentCase.ventricle.mesh.active_scalars_name),
+                                v_model=("Data Arrays", self.currentCase.ventricle.mesh.active_scalars_name),
                                 items=("array_mappes", list(self.currentCase.ventricle.mesh.point_data.keys())),
                                 hide_details=True,
                                 dense=True,
@@ -376,6 +380,23 @@ class App_Hearth_Helper:
                 vuetify.VSpacer()
                 vuetify.VDivider()
 
+    def update_charts_dropdown(self):
+        with self.server.ui.charts_type_array as charts_type_array:
+            #self.server.ui.list_array.clear()
+            charts_type_array.clear()
+            if self.data is not None and self.isPage == 2:
+
+                chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
+                vuetify.VSelect(
+                                label="Chart Type",
+                                v_model=("chartsType", chartsType[0]),
+                                items=("array_charts", chartsType),
+                                hide_details=True,
+                                dense=True,
+                                outlined=True,
+                                classes="pt-1 ml-2",
+                                style="max-width: 250px",
+                            )
     @change("endoVisibilty")
     def set_endo_visibility(self,endoVisibilty, **kwargs):
         if self.currentCase is not None:
@@ -388,23 +409,6 @@ class App_Hearth_Helper:
             self.ctrl.view_update()
                 
 
-    def update_charts_dropdown(self):
-        with self.server.ui.charts_type_array as charts_type_array:
-            #self.server.ui.list_array.clear()
-            charts_type_array.clear()
-            if self.data is not None:
-
-                chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
-                vuetify.VSelect(
-                                label="Scalars",
-                                v_model=("chartsType", chartsType[0]),
-                                items=("array_charts", chartsType),
-                                hide_details=True,
-                                dense=True,
-                                outlined=True,
-                                classes="pt-1 ml-2",
-                                style="max-width: 250px",
-                            )
                 
         
 # --------------------------------------------------------------------------------
@@ -464,6 +468,7 @@ class App_Hearth_Helper:
         )
     
     def actives_change(self,ids, **kwargs):
+        self.resetCase()       
         _id = ids[0]
         if  "caso_" in _id:
             self.pl.clear() 
@@ -497,8 +502,6 @@ class App_Hearth_Helper:
                         actor = self.pl.add_mesh(ds,name = ventricle,opacity=1,scalars="17_AHA")
                         ven = VentricleVTK(mesh,actor)
 
-                        # self._mesh = ven.mesh
-                        # self._actor = ven.actor
                         self.pl.scalar_bar.SetNumberOfLabels(17)
                         # print(self.pl.scalar_bar.GetNumberOfLabels())
 
@@ -526,7 +529,6 @@ class App_Hearth_Helper:
     def resetCase(self, **kwargs):
         print("reset")
         self.pl.clear_actors()
-        print("Actores: ",self.pl.actors)
         self.ctrl.view_update()
         self._data = None
         self.update_data_table()
@@ -557,6 +559,7 @@ class App_Hearth_Helper:
                     subparts = parts[2].split(',')
                     for i, subpart in enumerate(subparts):
                         if ':' in subpart:
+                            
                             key, value = subpart.split(':')
                             data[key.strip()] = value.strip()
                         else:
@@ -637,10 +640,11 @@ class App_Hearth_Helper:
         
         with RouterViewLayout(self.server, "/data") as dataView:
             with vuetify.VCard():
-                vuetify.VCardTitle("This is Data")
+                vuetify.VCardTitle("Data from Multi Sim")
+                fig = vega.Figure(classes="ma-2", style="width: 90%;")
+                self.ctrl.fig_update = fig.update                
                 self.server.ui.data_table(dataView)
-                fig = vega.Figure(classes="ma-2", style="width: 100%;")
-                self.ctrl.fig_update = fig.update
+
         # --------------------------------------------------------------------------------
         # VIEW LAYOUT
         # --------------------------------------------------------------------------------
