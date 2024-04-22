@@ -144,10 +144,8 @@ class App_Hearth_Helper:
             idReen =int(dat["Id's Reen"])
             idPac =int(dat["id_extraI"])
             cx = self.currentCase.ventricle.mesh.points[idReen]   
-            # cxNormal =  arrows[idReen]
             reenName= "Reen"+str(idReen) + "_" + str(dat["idReentrada"])
-            # if self.pl.has_actor(reenName):
-            #     return
+
             
             reenActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
             reenActor.visibility = 0
