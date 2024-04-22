@@ -161,8 +161,8 @@ def update_tooltip(pickData, pixel_ratio, **kwargs):
     data = pickData
 
     if data and data["representationId"] == "f1":
-        xyx = data["worldPosition"]
-        idx = f1_mesh.FindPoint(xyx)
+        xyx = data["worldPosition"] # <= This is the position of the mouse in the world
+        idx = f1_mesh.FindPoint(xyx) # <= This is the index of the point in the mesh based on the mouse position
         if idx > -1:
             messages = []
             cone_state = {
@@ -196,7 +196,7 @@ def update_tooltip(pickData, pixel_ratio, **kwargs):
                     )
                 cone_state["center"] = new_center
 
-            if len(messages):
+            if len(messages): # <= If there is any message to show
                 x, y, z = data["displayPosition"]
                 state.coneVisibility = True
                 state.tooltip = "\n".join(messages)

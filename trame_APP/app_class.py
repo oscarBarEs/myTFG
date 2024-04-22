@@ -15,7 +15,7 @@ from trame.widgets import router,trame
 
 
 from trame.ui.vuetify2 import SinglePageWithDrawerLayout
-from trame.widgets import vuetify2 as vuetify, vega, vtk as vtkTrame,plotly
+from trame.widgets import vuetify2 as vuetify,html, vega, vtk as vtkTrame,plotly
 from trame.widgets.vtk import VtkLocalView, VtkRemoteView
 
 from trame.decorators import TrameApp, change, life_cycle
@@ -57,10 +57,10 @@ class App_Hearth_Helper:
 
         self.server = get_server(name, client_type="vue2")  
         self.isPage=0
-        self.arritmias = []
         self.pl
-
+        self.currentCase = None
         self.last_node_clicked = None
+        self._data = None
 
         self.chartType =""
         if self.server.hot_reload:
@@ -68,7 +68,9 @@ class App_Hearth_Helper:
 
         self.ui = self._build_ui()
         self.state.trame__title = "MyTFG"
-
+        self.state.update({
+             "tooltip": "",
+        })
         self.ctrl.view_update()
     
     
@@ -114,30 +116,6 @@ class App_Hearth_Helper:
             return ventricle
         
 
-    @change("heart_file_exchange")
-    def handle(self,heart_file_exchange, **kwargs):
-        file = ClientFile(heart_file_exchange)
-        if file.content:
-            bytes = file.content
-            with tempfile.NamedTemporaryFile(suffix=file.name) as path:
-                with open(path.name, 'wb') as f:
-                    f.write(bytes)
-                ds = pv.read(path.name)
-            
-            if(type(ds).__name__ == "UnstructuredGrid"):
-                self._mesh=ds
-                self._actor = self.pl.add_mesh(ds, name=file.name,opacity=0)
-                cell_center = self.currentCase.ventricle.mesh.cell_centers().points[0]
-                self.update_drawer_heart()
-                if hasattr(self, "_data"):
-                    self.setArritmicView()
-
-            else:
-                self.pl.add_mesh(ds, name=file.name)
-
-            self.pl.reset_camera()
-            self.ctrl.view_update()
-            # self._update_UI()
     def setArritmicView(self):
         self.vtk_mapping={}
         for dat in self.data:
@@ -170,6 +148,8 @@ class App_Hearth_Helper:
         # scalars=self.currentCase.ventricle.mesh.active_scalars_name
         self.currentCase.ventricle.actor.mapper.array_name = scalars
         self.currentCase.ventricle.mesh.set_active_scalars(scalars)   ## Update en la malla !!
+        
+        self.pl.scalar_bar.SetTitle(scalars)
         self.currentCase.ventricle.actor.mapper.scalar_range = self.currentCase.ventricle.mesh.get_data_range(scalars)
         self.ctrl.view_update()
 
@@ -183,21 +163,6 @@ class App_Hearth_Helper:
 # DATA CHARTS PIPELINE
 # --------------------------------------------------------------------------------
 
-    @change("data_file_exchange")
-    def handle_data(self, data_file_exchange, **kwargs):
-        if data_file_exchange is None:
-            return
-        file = ClientFile(data_file_exchange)
-        if file.content:
-            try:
-                self._data = fetch_data(file)
-                self.update_data_table()
-                self.update_charts_dropdown()
-                if hasattr(self, "_mesh"):
-                    self.setArritmicView()
-            except UnicodeDecodeError:
-                print(f"Error: File {file.name} is not in a valid format or encoding.")
-                # Handle the error appropriately here
     @change("chartsType")
     def typeOfChart(self,chartsType, **kwargs):
         self.chartType = chartsType
@@ -248,34 +213,51 @@ class App_Hearth_Helper:
             # self.pl.renderer.actors[self.last_node_clicked].mapper.dataset.scale([1.0, 1.0, 1.0], inplace=True)
 
     def on_click(self, event):
+        self.state.tooltip = ""
+        self.state.tooltipStyle = {"display": "none"}        
         if event is None:
             print("Click on: --nothing--")
+            if self.last_node_clicked is not None:
+                self.colour_back()            
         else:
             nameActor = self.vtk_mapping.get(event.get('remoteId'))
-
             print("NAME: ",f"Click on: {nameActor}")
             if nameActor is not None:
-                if "Reen" in nameActor or "Pac" in nameActor:
-                    mode = "Reen"
-                    if "Reen" in nameActor:
-                        mode = "Pac"
+                id = nameActor.split('_')[1]
+                data = next((item for item in self.state.selection if item['idReentrada'] == int(id)), None)
 
-                    for act in self.pl.renderer.actors:
-                        if mode in act:
-                            x = nameActor[nameActor.index("_"):]  # get the substring from the underscore to the end
-                            if act.endswith(x):
-                                print(x," : ",act)
-                                scale = 1.1
-                                self.pl.renderer.actors[act].prop =pv.Property(color='green')
-                                # self.pl.renderer.actors[act].mapper.dataset.scale([scale, scale, scale], inplace=True)
+                pacing_value = str(int((float(data['Segmento AHA']))))
+                reen_value = str(int(float((data['Segmentos Reen']))))
 
-                                if self.last_node_clicked is not None:
-                                    self.colour_back()
-                                self.last_node_clicked = act
-                                self.ctrl.view_update()
+                # generate the string
+                result = f'Reen: {reen_value}       Pac: {pacing_value}'
+                pixel_ratio = 2
+                self.state.tooltip = result
+                self.state.tooltipStyle = {
+                    "position": "absolute",
+                    "left": f"{(0 / pixel_ratio )+ 10}px",
+                    "bottom": f"{(0 / pixel_ratio ) + 10}px",
+                    "zIndex": 10,
+                    "pointerEvents": "none",
+                }                
+                
+                if "Reen" in nameActor:
+                    mode = "Pac"
+                    idMode = data['id_extraI']
                 else:
+                    mode = "Reen"
+                    idMode = data['Id\'s Reen']
+
+                nameOther = mode + idMode + '_' + str(data['idReentrada'])
+                self.pl.renderer.actors[nameOther].prop =pv.Property(color='green')
+                if self.last_node_clicked is not None:
                     self.colour_back()
-                    self.last_node_clicked = None
+                self.last_node_clicked = nameOther
+                self.ctrl.view_update()
+
+            else:
+                self.colour_back()
+                self.last_node_clicked = None
                         
 
 
@@ -287,19 +269,19 @@ class App_Hearth_Helper:
     def update_data_table(self):
             with self.server.ui.data_table as data_table:
                 data_table.clear()
-                if  (hasattr(self, "_data")):
-                    if self.data is not None:                
-                        with vuetify.VContainer(classes="justify-left ma-6"):
-                            """fig = vega.Figure(classes="ma-2", style="width: 100%;")
-                            self.ctrl.fig_update = fig.update"""
-                            vuetify.VDataTable(**table_of_simulation(self.data))
-                
-                    else:
-                            vuetify.VCardText(children=["Select a case to start"])
+                if self.data is not None:                
+                    with vuetify.VContainer(classes="justify-left ma-6"):
+                        """fig = vega.Figure(classes="ma-2", style="width: 100%;")
+                        self.ctrl.fig_update = fig.update"""
+                        vuetify.VDataTable(**table_of_simulation(self.data))
+            
+                else:
+                        vuetify.VCardText(children=["Select a case to start"])
 
     def update_Page(self, *num, **kwargs):
         self.isPage = num[0]
 
+        self.update_home_icon()
         self.update_heart_icon()
         self.update_chart_icon()
 
@@ -307,6 +289,14 @@ class App_Hearth_Helper:
         self.update_charts_dropdown()
         # print(self.pl.meshes)
         # print("update")
+
+    def update_home_icon(self):
+        with self.server.ui.home_icon as home_icon:
+            home_icon.clear()
+            if  self.isPage == 0:
+                vuetify.VIcon("mdi-home-variant")
+            else:
+                vuetify.VIcon("mdi-home-variant-outline")
 
     def update_heart_icon(self):
         with self.server.ui.heart_icon as heart_icon:
@@ -344,8 +334,8 @@ class App_Hearth_Helper:
                     outlined=True,
                 )
                 vuetify.VSelect(
-                                label="Mapper",
-                                v_model=("Data Arrays", self.currentCase.ventricle.mesh.active_scalars_name),
+                                label="Data Arrays",
+                                v_model=("scalars", self.currentCase.ventricle.mesh.active_scalars_name),
                                 items=("array_mappes", list(self.currentCase.ventricle.mesh.point_data.keys())),
                                 hide_details=True,
                                 dense=True,
@@ -421,40 +411,23 @@ class App_Hearth_Helper:
     def header(self,layout):         
         vuetify.VSpacer()
         #FILE
+        with vuetify.VBtn(icon=True,click=(self.update_Page,"[0, $event]"),to="/"):
+            self.server.ui.home_icon(layout)
+            self.update_home_icon()
+
         with vuetify.VBtn(icon=True,click=(self.update_Page,"[1, $event]"),to="/heart"):
-            # vuetify.VIcon("mdi-heart-settings",click=self.update_heart_icon)
             self.server.ui.heart_icon(layout)
             self.update_heart_icon()
 
-        vuetify.VFileInput(
-            show_size=True,
-            small_chips=True,
-            truncate_length=25,
-            v_model=("heart_file_exchange", None),
-            dense=True,
-            hide_details=True,
-            style="max-width: 300px;",
-        )
-        vuetify.VSpacer()
         with vuetify.VBtn(icon=True,click=(self.update_Page,"[2, $event]"),to="/data"):
             self.server.ui.chart_icon(layout)
             self.update_chart_icon()
 
-        vuetify.VFileInput(
-            show_size=True,
-            small_chips=True,
-            truncate_length=25,
-            v_model=("data_file_exchange", None),
-            dense=True,
-            hide_details=True,
-            style="max-width: 300px;",
-        )
 
         vuetify.VSpacer()
         with vuetify.VBtn(icon=True,click=self.resetCase):
             vuetify.VIcon("mdi-restore")
-        with vuetify.VBtn(icon=True,click=(self.update_Page,"[0, $event]"),to="/"):
-            vuetify.VIcon("mdi-home-variant-outline")            
+           
 
         vuetify.VDivider(vertical=True, classes="mx-2")
 
@@ -624,7 +597,11 @@ class App_Hearth_Helper:
                 vuetify.VCardTitle("This is Visualizer")            
                 vuetify.VCardText(children=["Select a Case <br> Red = Reeentry, Blue = Pacing"]) 
                 self.server.ui.arritmic_info(layout)
-
+            with vuetify.VCard(
+                style=("tooltipStyle", {"display": "none"}), elevation=2, outlined=True
+            ):
+                with vuetify.VCardText():
+                    html.Pre("{{ tooltip }}")
             with vtkTrame.VtkLocalView(self.pl.ren_win,
                                        picking_modes=("picking_modes", ["click"]),
                             click=(self.on_click, "[$event]")
