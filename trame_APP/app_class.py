@@ -49,7 +49,6 @@ class dataArritmic:
         self.res = res
 
 
-
 @TrameApp()
 class App_Hearth_Helper:
 
@@ -91,12 +90,7 @@ class App_Hearth_Helper:
         if not hasattr(self, "_pl"):
             self._pl = pv.Plotter()
         return self._pl
-    @property
-    def mesh(self):
-        return self._mesh
-    @property
-    def actor(self):
-        return self._actor
+
     @property
     def data(self):
         return self._data
@@ -133,8 +127,8 @@ class App_Hearth_Helper:
             if(type(ds).__name__ == "UnstructuredGrid"):
                 self._mesh=ds
                 self._actor = self.pl.add_mesh(ds, name=file.name,opacity=0)
-                cell_center = self.mesh.cell_centers().points[0]
-                self.update_scalar_dropdown()
+                cell_center = self.currentCase.ventricle.mesh.cell_centers().points[0]
+                self.update_drawer_heart()
                 if hasattr(self, "_data"):
                     self.setArritmicView()
 
@@ -149,42 +143,43 @@ class App_Hearth_Helper:
         for dat in self.data:
             idReen =int(dat["Id's Reen"])
             idPac =int(dat["id_extraI"])
-            cx = self.mesh.points[idReen]   
+            cx = self.currentCase.ventricle.mesh.points[idReen]   
             # cxNormal =  arrows[idReen]
             reenName= "Reen"+str(idReen) + "_" + str(dat["idReentrada"])
             # if self.pl.has_actor(reenName):
             #     return
             
             reenActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
+            reenActor.visibility = 0
             self.vtk_mapping[self.get_scene_object_id(reenActor)] = reenName
 
             
-            cy = self.mesh.points[idPac]
+            cy = self.currentCase.ventricle.mesh.points[idPac]
             pacName= "Pac"+str(idPac)+ "_" + str(dat["idReentrada"])
             pacActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
-            
+            pacActor.visibility = 0
             self.vtk_mapping[self.get_scene_object_id(pacActor)] = pacName
 
 
 
     @change("log_scale")
     def set_log_scale(self,log_scale=False, **kwargs):
-        self.actor.mapper.lookup_table.log_scale = log_scale
+        self.currentCase.ventricle.actor.mapper.lookup_table.log_scale = log_scale
         self.ctrl.view_update()
 
     @change("scalars")
     def set_scalars(self,scalars, **kwargs):
-        # scalars=self.mesh.active_scalars_name
-        self.actor.mapper.array_name = scalars
-        self.mesh.set_active_scalars(scalars)   ## Update en la malla !!
-        self.actor.mapper.scalar_range = self.mesh.get_data_range(scalars)
+        # scalars=self.currentCase.ventricle.mesh.active_scalars_name
+        self.currentCase.ventricle.actor.mapper.array_name = scalars
+        self.currentCase.ventricle.mesh.set_active_scalars(scalars)   ## Update en la malla !!
+        self.currentCase.ventricle.actor.mapper.scalar_range = self.currentCase.ventricle.mesh.get_data_range(scalars)
         self.ctrl.view_update()
 
 
 
     @change("opacity")
     def set_opacity(self,opacity, **kwargs):
-        self.actor.GetProperty().SetOpacity(opacity)
+        self.currentCase.ventricle.actor.GetProperty().SetOpacity(opacity)
         self.ctrl.view_update()
 # --------------------------------------------------------------------------------
 # DATA CHARTS PIPELINE
@@ -219,12 +214,11 @@ class App_Hearth_Helper:
             chart = chart_onset_pacing(selection)
 
         self.ctrl.fig_update(chart)
-        if hasattr(self, "_mesh"):
-            newMesh = self.mesh.extract_surface()
-            arrows = newMesh.point_normals
+        if self.currentCase is not None:
             for x in selection:
                 idReen =int(x["Id's Reen"])
                 reenName= "Reen"+str(idReen)+ "_" + str(x["idReentrada"])
+                print(reenName)
                 self.pl.renderer.actors[reenName].visibility = 1
 
                 idPac =int(x["id_extraI"])
@@ -247,32 +241,43 @@ class App_Hearth_Helper:
 # Interactor Pipeline
 # --------------------------------------------------------------------------------
 
+    def colour_back(self):
+        if "Pac" in self.last_node_clicked:
+            self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='blue')
+        else:
+            self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='red')
+        # self.pl.renderer.actors[self.last_node_clicked].mapper.dataset.scale([1.0, 1.0, 1.0], inplace=True)
+
     def on_click(self, event):
         if event is None:
             print("Click on: --nothing--")
         else:
             nameActor = self.vtk_mapping.get(event.get('remoteId'))
             print(f"Click on: {nameActor}")
-            mode = "Pac"
-            
-            if "Pac" in nameActor:
+
+            if "Reen" in nameActor:
+                mode = "Pac"
+            elif "Pac" in nameActor:
                 mode = "Reen"
+            else:
+                self.colour_back()
+                self.last_node_clicked = None
+                pass
             
             for act in self.pl.renderer.actors:
                 if mode in act:
                     x = nameActor[nameActor.index("_"):]  # get the substring from the underscore to the end
                     if x in act:
                         print(act)
-                        self.pl.renderer.actors[act].prop =pv.Property(color='green') 
+                        scale = 1.1
+                        self.pl.renderer.actors[act].prop =pv.Property(color='green')
+                        # self.pl.renderer.actors[act].mapper.dataset.scale([scale, scale, scale], inplace=True)
+
                         if self.last_node_clicked is not None:
-                            if "Pac" in self.last_node_clicked:
-                                self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='red')
-                            else:
-                                self.pl.renderer.actors[self.last_node_clicked].prop =pv.Property(color='blue')
-        
+                            self.colour_back()
                         self.last_node_clicked = act
                         self.ctrl.view_update()
-                        # 
+                        
 
 
 # --------------------------------------------------------------------------------
@@ -281,16 +286,18 @@ class App_Hearth_Helper:
 
 
     def update_data_table(self):
-        with self.server.ui.data_table as data_table:
-            data_table.clear()
-            if  (hasattr(self, "_data")):
-                with vuetify.VContainer(classes="justify-left ma-6"):
-                    """fig = vega.Figure(classes="ma-2", style="width: 100%;")
-                    self.ctrl.fig_update = fig.update"""
-                    vuetify.VDataTable(**table_of_simulation(self.data))
         
-            else:
-                    vuetify.VCardText(children=["Add a data file to start"])
+            with self.server.ui.data_table as data_table:
+                data_table.clear()
+                if  (hasattr(self, "_data")):
+                    if self.data is not None:                
+                        with vuetify.VContainer(classes="justify-left ma-6"):
+                            """fig = vega.Figure(classes="ma-2", style="width: 100%;")
+                            self.ctrl.fig_update = fig.update"""
+                            vuetify.VDataTable(**table_of_simulation(self.data))
+                
+                    else:
+                            vuetify.VCardText(children=["Select a case to start"])
 
     def update_Page(self, *num, **kwargs):
         self.isPage = num[0]
@@ -304,6 +311,7 @@ class App_Hearth_Helper:
             heart_icon.clear()
             if  self.isPage == 1:
                 vuetify.VIcon("mdi-heart-settings")
+                self.ctrl.view_update()
             else:
                 vuetify.VIcon("mdi-heart-settings-outline")
     def update_chart_icon(self):
@@ -314,59 +322,61 @@ class App_Hearth_Helper:
             else:
                 vuetify.VIcon("mdi-file-chart-outline")
 
-    def update_scalar_dropdown(self):
+    def update_drawer_heart(self):
         with self.server.ui.list_array as array_list:
-            vuetify.VCardTitle(
-                "Heart Visualization Options", 
-                classes="grey lighten-1 py-1 grey--text text--darken-3",
-                style="user-select: none; cursor: pointer",
-                hide_details=True,
-                dense=True,
-            )
             array_list.clear()
-            vuetify.VCheckbox(
-                label="Log Scale",
-                v_model=("log_scale", False),
-                hide_details=True,
-                dense=True,
-                outlined=True,
-            )
-            vuetify.VSelect(
-                            label="Mapper",
-                            v_model=("scalars", self.mesh.active_scalars_name),
-                            items=("array_mappes", list(self.mesh.point_data.keys())),
+            if self.currentCase is not None:
+                vuetify.VCardTitle(
+                    "Heart Visualization Options", 
+                    classes="grey lighten-1 py-1 grey--text text--darken-3",
+                    style="user-select: none; cursor: pointer",
+                    hide_details=True,
+                    dense=True,
+                )
+                array_list.clear()
+                vuetify.VCheckbox(
+                    label="Log Scale",
+                    v_model=("log_scale", False),
+                    hide_details=True,
+                    dense=True,
+                    outlined=True,
+                )
+                vuetify.VSelect(
+                                label="Mapper",
+                                v_model=("scalars", self.currentCase.ventricle.mesh.active_scalars_name),
+                                items=("array_mappes", list(self.currentCase.ventricle.mesh.point_data.keys())),
+                                hide_details=True,
+                                dense=True,
+                                outlined=True,
+                                classes="pt-1 ml-2",
+                                style="max-width: 250px",
+                            )
+                vuetify.VSlider(
+                    label="Opacity",
+                    v_model=("opacity", 0.3),
+                    min=0.0,
+                    max=1.0,
+                    step=0.1)
+                vuetify.VDivider()
+                with vuetify.VContainer():
+                    with vuetify.VRow() as visibilityMeshes:
+                        # 
+                        vuetify.VSpacer()
+                        vuetify.VCheckbox(
+                            label="Endo",
+                            v_model=("endoVisibilty", True),
                             hide_details=True,
                             dense=True,
-                            outlined=True,
-                            classes="pt-1 ml-2",
-                            style="max-width: 250px",
-                        )
-            vuetify.VSlider(
-                label="Opacity",
-                v_model=("opacity", 0.3),
-                min=0.0,
-                max=1.0,
-                step=0.1)
-            vuetify.VDivider()
-            with vuetify.VContainer():
-                with vuetify.VRow() as visibilityMeshes:
-                    # 
-                    vuetify.VSpacer()
-                    vuetify.VCheckbox(
-                        label="Endo",
-                        v_model=("endoVisibilty", True),
-                        hide_details=True,
-                        dense=True,
-                        outlined=True)
-                    vuetify.VCheckbox(
-                        label="Core",
-                        v_model=("coreVisibilty", True),
-                        hide_details=True,
-                        dense=True,
-                        outlined=True)
-                    vuetify.VSpacer()
-            vuetify.VSpacer()
-            vuetify.VDivider()
+                            outlined=True)
+                        vuetify.VCheckbox(
+                            label="Core",
+                            v_model=("coreVisibilty", True),
+                            hide_details=True,
+                            dense=True,
+                            outlined=True)
+                        vuetify.VSpacer()
+                vuetify.VSpacer()
+                vuetify.VDivider()
 
     @change("endoVisibilty")
     def set_endo_visibility(self,endoVisibilty, **kwargs):
@@ -384,18 +394,20 @@ class App_Hearth_Helper:
         with self.server.ui.charts_type_array as charts_type_array:
             #self.server.ui.list_array.clear()
             charts_type_array.clear()
-            chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
-            vuetify.VSelect(
-                            label="Scalars",
-                            v_model=("chartsType", chartsType[0]),
-                            items=("array_charts", chartsType),
-                            hide_details=True,
-                            dense=True,
-                            outlined=True,
-                            classes="pt-1 ml-2",
-                            style="max-width: 250px",
-                        )
-        
+            if self.data is not None:
+
+                chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
+                vuetify.VSelect(
+                                label="Scalars",
+                                v_model=("chartsType", chartsType[0]),
+                                items=("array_charts", chartsType),
+                                hide_details=True,
+                                dense=True,
+                                outlined=True,
+                                classes="pt-1 ml-2",
+                                style="max-width: 250px",
+                            )
+                
         
 # --------------------------------------------------------------------------------
 # UI LAYOUT
@@ -437,8 +449,10 @@ class App_Hearth_Helper:
         )
 
         vuetify.VSpacer()
-        with vuetify.VBtn(icon=True,click=(self.update_Page,"[0, $event]"),to="/"):
+        with vuetify.VBtn(icon=True,click=self.resetCase):
             vuetify.VIcon("mdi-restore")
+        with vuetify.VBtn(icon=True,click=(self.update_Page,"[0, $event]"),to="/"):
+            vuetify.VIcon("mdi-home-variant-outline")            
 
         vuetify.VDivider(vertical=True, classes="mx-2")
 
@@ -485,8 +499,10 @@ class App_Hearth_Helper:
                         actor = self.pl.add_mesh(ds,name = ventricle,opacity=1,scalars="17_AHA")
                         ven = VentricleVTK(mesh,actor)
 
-                        self._mesh = ven.mesh
-                        self._actor = ven.actor
+                        # self._mesh = ven.mesh
+                        # self._actor = ven.actor
+                        self.pl.scalar_bar.SetNumberOfLabels(17)
+                        # print(self.pl.scalar_bar.GetNumberOfLabels())
 
                         endo = os.path.join(root,endo)
                         end= self.getVtkActor(endo)
@@ -503,12 +519,27 @@ class App_Hearth_Helper:
 
                         self.currentCase = dataArritmic(ven,end,cor,res)
                         self.setArritmicView()                         
-                        self.update_scalar_dropdown()
+                        self.update_drawer_heart()
                         self.update_data_table()
                         self.update_charts_dropdown()
                         self.pl.reset_camera()
                         self.ctrl.view_update()                        
-                     
+
+    def resetCase(self, **kwargs):
+        print("reset")
+        self.pl.clear_actors()
+        print("Actores: ",self.pl.actors)
+        self.ctrl.view_update()
+        self._data = None
+        self.update_data_table()
+
+        self.currentCase = None
+        self.update_drawer_heart()
+        self.update_charts_dropdown()
+        self.pl.reset_camera()
+        self.ctrl.view_update()
+
+
     def fetch_data_autoRead(self,json_file):
         data = {}
         with open(json_file, 'r', encoding='utf-8') as file:
@@ -599,7 +630,7 @@ class App_Hearth_Helper:
             layout.root.classes="fill-height"
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Visualizer")            
-                vuetify.VCardText(children=["Add a heart file to start <br> Red = Reeentry, Blue = Pacing"]) 
+                vuetify.VCardText(children=["Select a Case <br> Red = Reeentry, Blue = Pacing"]) 
                 self.server.ui.arritmic_info(layout)
 
             with vtkTrame.VtkLocalView(self.pl.ren_win,
