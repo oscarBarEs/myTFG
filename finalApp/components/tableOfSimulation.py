@@ -6,7 +6,7 @@ import altair as alt
 # DATA FRAME 'output.json'
 # -----------------------------------------------------------------------------
 DATA_FRAME = None
-
+heightOfChart = 250
 def table_of_simulation(json_file):
     header_options = {"Id's Reen": {"sortable": False}}  # Define your header options here
 
@@ -38,7 +38,7 @@ def selection_change_tos(selection=[], **kwargs):
         return alt.Chart(grouped_data).mark_bar().encode(
             x='Segmentos Reen:O',
             y='counts:Q'
-        ).properties(width='container', height=100)
+        ).properties(width='container', height=heightOfChart)
 
     grouped_data = filtered_data.groupby('Segmentos Reen').size().reset_index(name='counts')
 
@@ -46,7 +46,7 @@ def selection_change_tos(selection=[], **kwargs):
     chart = alt.Chart(grouped_data).mark_bar().encode(
         x='Segmentos Reen:O',
         y='counts:Q'
-    ).properties(width='container', height=250)
+    ).properties(width='container', height=heightOfChart)
     
     return chart
   
@@ -62,7 +62,7 @@ def chart_onset_pacing(selection=[], **kwargs):
             y='Segmento AHA:Q',
             size='counts:Q',
             color=alt.Color('counts:Q', scale=alt.Scale(domain=[0,  grouped_data['counts'].max()], range=['green', 'red']))
-        ).properties(width='container', height=250)
+        ).properties(width='container', height=heightOfChart)
     
     filtered_data['Segmentos Reen'] = filtered_data['Segmentos Reen'].astype(float).astype(int)  # convert to float, then to integer
     filtered_data['Segmento AHA'] = filtered_data['Segmento AHA'].astype(float).astype(int)  # convert to float, then to integer
@@ -74,7 +74,7 @@ def chart_onset_pacing(selection=[], **kwargs):
         size='counts:Q',  # encode the size of the points with the count
         color=alt.Color('counts:Q', scale=alt.Scale(domain=[0, grouped_data['counts'].max()], range=['green', 'red']))  # encode the color with the count
 
-    ).properties(width='container', height=250)
+    ).properties(width='container', height=heightOfChart)
     
     return chart
 

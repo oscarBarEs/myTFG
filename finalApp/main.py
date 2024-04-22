@@ -538,7 +538,7 @@ class App_Hearth_Helper:
             with vuetify.VCard() as card:
                 card.classes="fill-width"
                 vuetify.VCardTitle("Main Page")
-                vuetify.VCardText(children=["Add the file heart to see it, and the file data to see the results. I interact with the data to see the results"])
+                vuetify.VCardText(children=["Select a case to start"])
 
                 def generate_sources(root_dir):
                     sources = []
@@ -573,8 +573,9 @@ class App_Hearth_Helper:
                         "pipeline",
                         self.sources,
                     ),
-                    actives_change=(self.actives_change, "[$event]")
-                )
+                    actives_change=(self.actives_change, "[$event]"),
+                    text_color=("$vuetify.theme.dark ? ['white', 'black'] : ['black', 'white']",),
+                ) 
 
         # --------------------------------------------------------------------------------
         # HEART LAYOUT
