@@ -28,7 +28,7 @@ def table_of_simulation(json_file):
     }
     return table
 
-def selection_change_tos(selection=[], **kwargs):
+def chart_Reen_Count(selection=[], **kwargs):
     global DATA_FRAME
     # Filter the DataFrame to only include rows where the 'Id's Reen' value is in selection
     filtered_data =  pd.DataFrame(selection)
@@ -79,4 +79,4 @@ def chart_onset_pacing(selection=[], **kwargs):
     return chart
 
 
-# {'idReentrada': 3, "Id's Reen": '45147', 'Segmentos Reen': '16.0', 'stimFrecS1': '600.0', 'stimFrecS2': '295.0', 'nStimsS1': '6', 'nStimsS2': '3', 'cv_memory': '0.05', 'apd_memory': '0.35', 'APDR factor': '1.0', 'CVR factor': '1.0', 'apd_isot_ef': '0.8', 'id_extraI': '96899', 'Segmento AHA': '7.0', 'Endo/Epi': 'Endo'}
+# {'idSim': 3, "Id's Reen": '45147', 'Segmentos Reen': '16.0', 'stimFrecS1': '600.0', 'stimFrecS2': '295.0', 'nStimsS1': '6', 'nStimsS2': '3', 'cv_memory': '0.05', 'apd_memory': '0.35', 'APDR factor': '1.0', 'CVR factor': '1.0', 'apd_isot_ef': '0.8', 'id_extraI': '96899', 'Segmento AHA': '7.0', 'Endo/Epi': 'Endo'}

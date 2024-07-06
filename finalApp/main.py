@@ -14,7 +14,7 @@ from trame.widgets import vuetify2 as vuetify,html, vega, vtk as vtkTrame
 
 from trame.decorators import TrameApp, change, life_cycle
 
-from components.tableOfSimulation import table_of_simulation, selection_change_tos, chart_onset_pacing
+from components.tableOfSimulation import table_of_simulation, chart_Reen_Count, chart_onset_pacing
 
 
 
@@ -44,11 +44,12 @@ class dataArritmic:
 class App_Hearth_Helper:
 
 
-    def __init__(self,name=None,  table_size=10):
+    def __init__(self,name=None):
 
         self.server = get_server(name, client_type="vue2")  
-        self.isPage=0
         self.pl
+
+        self.isPage=0
         self.currentCase = None
         self.last_node_clicked = None
         self._data = None
@@ -56,20 +57,16 @@ class App_Hearth_Helper:
         self.chartType =""
         if self.server.hot_reload:
             self.server.controller.on_server_reload.add(self._build_ui)
+        self.state.name_case = "No case selected"
 
         self.ui = self._build_ui()
+        self.ctrl.changeTitle("No case selected")
         self.state.trame__title = "MyTFG"
         self.state.update({
              "tooltip": "",
         })
         self.ctrl.view_update()
     
-    
-
-    def update_arritmic_info(self,arritmic_info):
-        with self.server.ui.arritmic_info as arritmic_info:
-            arritmic_info.clear()
-            vuetify.VCardText(children=[arritmic_info])
 
     @property
     def ctrl(self):
@@ -105,7 +102,12 @@ class App_Hearth_Helper:
         
             ventricle = VentricleVTK(mesh,actor)
             return ventricle
-        
+
+
+    def update_arritmic_info(self,arritmic_info):
+        with self.server.ui.arritmic_info as arritmic_info:
+            arritmic_info.clear()
+            vuetify.VCardText(children=[arritmic_info])        
 
     def setArritmicView(self):
         self.vtk_mapping={}
@@ -113,7 +115,7 @@ class App_Hearth_Helper:
             idReen =int(dat["Id's Reen"])
             idPac =int(dat["id_extraI"])
             cx = self.currentCase.ventricle.mesh.points[idReen]   
-            reenName= "Reen"+str(idReen) + "_" + str(dat["idReentrada"])
+            reenName= "Reen"+str(idReen) + "_" + str(dat["idSim"])
 
             
             reenActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cx), color="red", name=reenName)
@@ -122,7 +124,7 @@ class App_Hearth_Helper:
 
             
             cy = self.currentCase.ventricle.mesh.points[idPac]
-            pacName= "Pac"+str(idPac)+ "_" + str(dat["idReentrada"])
+            pacName= "Pac"+str(idPac)+ "_" + str(dat["idSim"])
             pacActor = self.pl.add_mesh(pv.Sphere(radius=1.5,center=cy), color="blue", name=pacName)
             pacActor.visibility = 0
             self.vtk_mapping[self.get_scene_object_id(pacActor)] = pacName
@@ -141,6 +143,8 @@ class App_Hearth_Helper:
         self.currentCase.ventricle.mesh.set_active_scalars(scalars)   ## Update en la malla !!
         
         self.pl.scalar_bar.SetTitle(scalars)
+        self.pl.scalar_bar.SetNumberOfLabels(1)
+
         self.currentCase.ventricle.actor.mapper.scalar_range = self.currentCase.ventricle.mesh.get_data_range(scalars)
         self.ctrl.view_update()
 
@@ -164,7 +168,7 @@ class App_Hearth_Helper:
         # Chart
         chart = None
         if self.chartType == "Count Segmentos Reen":
-            chart = selection_change_tos(selection)
+            chart = chart_Reen_Count(selection)
         elif self.chartType == "Onset/Pacing":
             chart = chart_onset_pacing(selection)
         if chart is not None:
@@ -172,21 +176,21 @@ class App_Hearth_Helper:
         if self.currentCase is not None:
             for x in selection:
                 idReen =int(x["Id's Reen"])
-                reenName= "Reen"+str(idReen)+ "_" + str(x["idReentrada"])
+                reenName= "Reen"+str(idReen)+ "_" + str(x["idSim"])
                 self.pl.renderer.actors[reenName].visibility = 1
 
                 idPac =int(x["id_extraI"])
-                pacName= "Pac"+str(idPac)+ "_" + str(x["idReentrada"])
+                pacName= "Pac"+str(idPac)+ "_" + str(x["idSim"])
                 self.pl.renderer.actors[pacName].visibility = 1
 
             not_selected = [item for item in self.data if item not in selection]
             for x in not_selected:
                 idReen =int(x["Id's Reen"])
-                reenName= "Reen"+str(idReen)+ "_" + str(x["idReentrada"])
+                reenName= "Reen"+str(idReen)+ "_" + str(x["idSim"])
                 self.pl.renderer.actors[reenName].visibility = 0
 
                 idPac =int(x["id_extraI"])
-                pacName= "Pac"+str(idPac) + "_" + str(x["idReentrada"])
+                pacName= "Pac"+str(idPac) + "_" + str(x["idSim"])
                 self.pl.renderer.actors[pacName].visibility = 0
 
             self.ctrl.view_update()
@@ -215,7 +219,7 @@ class App_Hearth_Helper:
             print("NAME: ",f"Click on: {nameActor}")
             if nameActor is not None:
                 id = nameActor.split('_')[1]
-                data = next((item for item in self.state.selection if item['idReentrada'] == int(id)), None)
+                data = next((item for item in self.state.selection if item['idSim'] == int(id)), None)
 
                 pacing_value = str(int((float(data['Segmento AHA']))))
                 reen_value = str(int(float((data['Segmentos Reen']))))
@@ -239,7 +243,7 @@ class App_Hearth_Helper:
                     mode = "Reen"
                     idMode = data['Id\'s Reen']
 
-                nameOther = mode + idMode + '_' + str(data['idReentrada'])
+                nameOther = mode + idMode + '_' + str(data['idSim'])
                 self.pl.renderer.actors[nameOther].prop =pv.Property(color='green')
                 if self.last_node_clicked is not None:
                     self.colour_back()
@@ -256,28 +260,40 @@ class App_Hearth_Helper:
 # DYNAMIC LAYOUT
 # --------------------------------------------------------------------------------
 
+    def update_UI(self):
+        self.update_icons()
+        self.update_drawers()    
+
+        #self.update_arritmic_info("Select a Case <br> Red = Reeentry, Blue = Pacing")
+
+    def update_icons(self):
+        self.update_home_icon()
+        self.update_heart_icon()
+        self.update_chart_icon()
+    
+    def update_drawers(self):
+        self.update_drawer_heart()
+        self.update_drawer_charts()
+        self.update_drawer_main()
+
+
+
 
     def update_data_table(self):
             with self.server.ui.data_table as data_table:
                 data_table.clear()
                 if self.data is not None:                
-                    with vuetify.VContainer(classes="justify-left ma-6"):
+                    with vuetify.VContainer(classes="justify-left", style="width: 100%", fluid=True):
                         """fig = vega.Figure(classes="ma-2", style="width: 100%;")
                         self.ctrl.fig_update = fig.update"""
                         vuetify.VDataTable(**table_of_simulation(self.data))
-            
+
                 else:
                         vuetify.VCardText(children=["Select a case to start"])
 
     def update_Page(self, *num, **kwargs):
         self.isPage = num[0]
-
-        self.update_home_icon()
-        self.update_heart_icon()
-        self.update_chart_icon()
-
-        self.update_drawer_heart()
-        self.update_charts_dropdown()
+        self.update_UI()
 
 
     def update_home_icon(self):
@@ -305,9 +321,11 @@ class App_Hearth_Helper:
                 vuetify.VIcon("mdi-file-chart-outline")
 
     def update_drawer_heart(self):
-        with self.server.ui.list_array as array_list:
+        with self.server.ui.heart_drawer as array_list:
             array_list.clear()
             if self.currentCase is not None and self.isPage == 1:
+                
+                array_list.clear()
                 vuetify.VCardTitle(
                     "Heart Visualization Options", 
                     classes="grey lighten-1 py-1 grey--text text--darken-3",
@@ -315,44 +333,44 @@ class App_Hearth_Helper:
                     hide_details=True,
                     dense=True,
                 )
-                array_list.clear()
-                vuetify.VCheckbox(
-                    label="Log Scale",
-                    v_model=("log_scale", False),
-                    hide_details=True,
-                    dense=True,
-                    outlined=True,
-                )
-                vuetify.VSelect(
-                                label="Data Arrays",
-                                v_model=("scalars", self.currentCase.ventricle.mesh.active_scalars_name),
-                                items=("array_mappes", list(self.currentCase.ventricle.mesh.point_data.keys())),
-                                hide_details=True,
-                                dense=True,
-                                outlined=True,
-                                classes="pt-1 ml-2",
-                                style="max-width: 250px",
-                            )
+                vuetify.VSpacer()
+                with vuetify.VContainer():
+                    with vuetify.VRow(classes="right-0"):
+                        vuetify.VCardTitle("Active Scalar:", classes="subtitle-1 ")            
+
+                        vuetify.VSelect(
+                                        label="Data Arrays",
+                                        v_model=("scalars", self.currentCase.ventricle.mesh.active_scalars_name),
+                                        items=("array_mappes", list(self.currentCase.ventricle.mesh.point_data.keys())),
+                                        hide_details=True,
+                                        dense=True,
+                                        outlined=True,
+                                        classes="pt-1 ml-2",
+                                        style="max-width: 250px",
+                                    )
+                vuetify.VSpacer()
+                        
                 vuetify.VSlider(
                     label="Opacity",
-                    v_model=("opacity", 0.3),
+                    v_model=("opacity", 0.5),
                     min=0.0,
                     max=1.0,
                     step=0.1)
+                vuetify.VSpacer()
                 vuetify.VDivider()
                 with vuetify.VContainer():
-                    with vuetify.VRow() as visibilityMeshes:
+                    with vuetify.VRow() :
                         # 
                         vuetify.VSpacer()
                         vuetify.VCheckbox(
                             label="Endo",
-                            v_model=("endoVisibilty", True),
+                            v_model=("endoVisibilty", self.currentCase.endo.actor.visibility),
                             hide_details=True,
                             dense=True,
                             outlined=True)
                         vuetify.VCheckbox(
                             label="Core",
-                            v_model=("coreVisibilty", True),
+                            v_model=("coreVisibilty", self.currentCase.core.actor.visibility),
                             hide_details=True,
                             dense=True,
                             outlined=True)
@@ -360,12 +378,23 @@ class App_Hearth_Helper:
                 vuetify.VSpacer()
                 vuetify.VDivider()
 
-    def update_charts_dropdown(self):
-        with self.server.ui.charts_type_array as charts_type_array:
-            #self.server.ui.list_array.clear()
-            charts_type_array.clear()
-            if self.data is not None and self.isPage == 2:
+    def update_drawer_charts(self):
 
+        with self.server.ui.results_drawer as results_drawer:
+            #self.server.ui.heart_drawer.clear()
+            results_drawer.clear()
+
+
+            if self.data is not None and self.isPage == 2:
+                self.update_data_table() 
+
+                vuetify.VCardTitle(
+                    "Multi Sims results Options", 
+                    classes="grey lighten-1 py-1 grey--text text--darken-3",
+                    style="user-select: none; cursor: pointer",
+                    hide_details=True,
+                    dense=True,
+                )
                 chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
                 vuetify.VSelect(
                                 label="Chart Type",
@@ -377,14 +406,35 @@ class App_Hearth_Helper:
                                 classes="pt-1 ml-2",
                                 style="max-width: 250px",
                             )
+
+    def update_drawer_main(self):
+        with self.server.ui.drawer_main as drawer_main:
+            drawer_main.clear()
+
+            if self.currentCase is not None and  self.isPage == 0:
+                vuetify.VCardTitle(
+                    "Case Info", 
+                    classes="grey lighten-1 py-1 grey--text text--darken-3",
+                    style="user-select: none; cursor: pointer",
+                    hide_details=True,
+                    dense=True,
+                )
+                vuetify.VSpacer()
+                vuetify.VCardText(children=[self.state.infoCase,])
+
+
+
+    
     @change("endoVisibilty")
     def set_endo_visibility(self,endoVisibilty, **kwargs):
         if self.currentCase is not None:
+            print("endo",self.currentCase.endo.actor.visibility)
             self.currentCase.endo.actor.visibility = endoVisibilty
             self.ctrl.view_update()
     @change("coreVisibilty")
     def set_core_visibility(self,coreVisibilty, **kwargs):
         if self.currentCase is not None:
+            print("core",self.currentCase.core.actor.visibility)
             self.currentCase.core.actor.visibility = coreVisibilty
             self.ctrl.view_update()
                 
@@ -456,7 +506,9 @@ class App_Hearth_Helper:
                         elif file.endswith(".txt"):
                             res = file
                     if ventricle and endo and core and res:
-
+                        caseName= rootFolder
+                        caseName = caseName.replace("./casos/","")
+                        self.ctrl.changeTitle(caseName)
                         ventricle = os.path.join(root,ventricle)
 
                         ds = pv.read(ventricle)
@@ -465,7 +517,7 @@ class App_Hearth_Helper:
                         actor = self.pl.add_mesh(ds,name = ventricle,opacity=1,scalars="17_AHA")
                         ven = VentricleVTK(mesh,actor)
 
-                        self.pl.scalar_bar.SetNumberOfLabels(17)
+                        self.pl.scalar_bar.SetNumberOfLabels(1)
 
                         endo = os.path.join(root,endo)
                         end= self.getVtkActor(endo)
@@ -477,38 +529,64 @@ class App_Hearth_Helper:
 
                         res = os.path.join(root,res)
     
-                        res = self.fetch_data_autoRead(res)
+                        res = self.fetch_data_simResults(res)
                         self._data = res
 
                         self.currentCase = dataArritmic(ven,end,cor,res)
                         self.setArritmicView()                         
-                        self.update_drawer_heart()
-                        self.update_data_table()
-                        self.update_charts_dropdown()
+                        self.update_UI()
                         self.pl.reset_camera()
                         self.ctrl.view_update()                        
 
     def resetCase(self, **kwargs):
-        print("reset")
-        self.pl.clear_actors()
+
+        self.ctrl.changeTitle("No case selected")
+        self.state.infoCase = ""
+        for actor in self.pl.renderer.actors:
+            self.pl.renderer.actors[actor].visibility = 0
+            
+        self.ctrl.view_update()
+        self.pl.clear()
+        
         self.ctrl.view_update()
         self._data = None
         self.update_data_table()
 
         self.currentCase = None
-        self.update_drawer_heart()
-        self.update_charts_dropdown()
+
+        self.update_UI()
+
         self.pl.reset_camera()
         self.ctrl.view_update()
 
 
-    def fetch_data_autoRead(self,json_file):
+    def fetch_data_simResults(self,json_file):
         data = {}
         with open(json_file, 'r', encoding='utf-8') as file:
             lines = iter(file.readlines())
+
+
+            infoCase = ""
+            in_section = False
+        
             for line in lines:
+                # Check for the start of the section
+                if "RESULTADO FINAL" in line:
+                    in_section = True
+                
+                # Check for the end of the section
                 if line.strip() == "PARÁMETROS DE SIMULACIONES CON REENTRADA:":
-                    break
+                    in_section = False
+                    break  # Exit the loop as we've reached the end of the section
+                
+                # If in the section, append the line to infoCase
+                if in_section:
+                    infoCase += line.strip() + "<br>"
+            
+            # Assign the collected info to self.state.infoCase
+            self.state.infoCase = infoCase
+
+
             datos = []
             x=0
             for line in lines:
@@ -516,7 +594,7 @@ class App_Hearth_Helper:
                 parts = line.split('->')
                 if(parts.__len__() > 2):
                     data = {}
-                    data["idReentrada"] = x
+                    data["idSim"] = x
                     x+=1                    
                     subparts = parts[2].split(',')
                     for i, subpart in enumerate(subparts):
@@ -533,41 +611,42 @@ class App_Hearth_Helper:
                     datos.append(data)
         return datos
 
+    def generate_sources(self, root_dir):
+        sources = []
+        id_counter = 1
+        dir_ids = {root_dir: "0"}  # Keep track of directory ids
+
+        for root, dirs, files in os.walk(root_dir):
+            depth = root[len(root_dir):].count(os.sep)
+
+            for dir in dirs:
+                dir_path = os.path.join(root, dir)
+                parent_id = dir_ids[root]  # Get the id of the parent directory
+                dir_ids[dir_path] = str(id_counter)  # Store the id of the current directory
+                if depth > 0:  # If the directory is a subfolder, add 100 to its id
+                    id_caso = "caso_" + str(id_counter)
+                    case = {"id": id_caso, "parent": parent_id, "visible": 1, "name": dir}
+                    self.casos.append((id_caso, dir_path))
+                else:
+                    id_doc = "doc_" + str(id_counter)
+                    case = {"id": str(id_counter), "parent": parent_id, "visible": 1, "name": dir}
+                
+                sources.append(case)
+                id_counter += 1
+
+        return sources
+
     def _build_ui(self):
         with RouterViewLayout(self.server, "/"):
             with vuetify.VCard() as card:
                 card.classes="fill-width"
                 vuetify.VCardTitle("Main Page")
-                vuetify.VCardText(children=["Select a case to start"])
-
-                def generate_sources(root_dir):
-                    sources = []
-                    id_counter = 1
-                    dir_ids = {root_dir: "0"}  # Keep track of directory ids
-
-                    for root, dirs, files in os.walk(root_dir):
-                        depth = root[len(root_dir):].count(os.sep)
-
-                        for dir in dirs:
-                            dir_path = os.path.join(root, dir)
-                            parent_id = dir_ids[root]  # Get the id of the parent directory
-                            dir_ids[dir_path] = str(id_counter)  # Store the id of the current directory
-                            if depth > 0:  # If the directory is a subfolder, add 100 to its id
-                                id_caso = "caso_" + str(id_counter)
-                                case = {"id": id_caso, "parent": parent_id, "visible": 1, "name": dir}
-                                self.casos.append((id_caso, dir_path))
-                            else:
-                                id_doc = "doc_" + str(id_counter)
-                                case = {"id": str(id_counter), "parent": parent_id, "visible": 1, "name": dir}
-                            
-                            sources.append(case)
-                            id_counter += 1
-
-                    return sources
+                #name_case
+                vuetify.VCardText(children=["<h1>"+self.state.name_case+"</h1>" ," <br> Navigate through the icons to see the different options"])
                 self.casos = []  # Array to store the id and root of each "caso"
        
                 root_dir = "./casos"  # Cambia esto a la ruta de tu directorio raíz
-                self.sources = generate_sources(root_dir)            
+                self.sources = self.generate_sources(root_dir)            
                 trame.GitTree(
                     sources=(
                         "pipeline",
@@ -575,18 +654,20 @@ class App_Hearth_Helper:
                     ),
                     actives_change=(self.actives_change, "[$event]"),
                     text_color=("$vuetify.theme.dark ? ['white', 'black'] : ['black', 'white']",),
+                    classes="justify-center", style="width: 100%", fluid=True
+
                 ) 
 
         # --------------------------------------------------------------------------------
         # HEART LAYOUT
         # --------------------------------------------------------------------------------
                 
-        with RouterViewLayout(self.server, "/heart") as layout:
-            layout.root.classes="fill-height"
+        with RouterViewLayout(self.server, "/heart") as heartLayout:
+            heartLayout.root.classes="fill-height"
             with vuetify.VCard():
                 vuetify.VCardTitle("This is Visualizer")            
                 vuetify.VCardText(children=["Select a Case <br> Red = Reeentry, Blue = Pacing"]) 
-                self.server.ui.arritmic_info(layout)
+                self.server.ui.arritmic_info(heartLayout)
             with vuetify.VCard(
                 style=("tooltipStyle", {"display": "none"}), elevation=2, outlined=True
             ):
@@ -608,8 +689,9 @@ class App_Hearth_Helper:
         with RouterViewLayout(self.server, "/data") as dataView:
             with vuetify.VCard():
                 vuetify.VCardTitle("Data from Multi Sim")
-                fig = vega.Figure(classes="ma-2", style="width: 90%;")
-                self.ctrl.fig_update = fig.update                
+                fig = vega.Figure(classes="justify-left", style="width: 100%", fluid=True)
+                self.ctrl.fig_update = fig.update 
+                vuetify.VSpacer()               
                 self.server.ui.data_table(dataView)
 
         # --------------------------------------------------------------------------------
@@ -618,6 +700,15 @@ class App_Hearth_Helper:
         
 
         with SinglePageWithDrawerLayout(self.server) as layout:
+
+            def changeTitle(name_case,**kwargs):
+                layout.title.set_text(name_case)
+                self.server.ui.flush_content()
+
+            self.ctrl.changeTitle = changeTitle
+
+            layout.title.set_text(("No case Selected"))
+
             with layout.toolbar:
                 self.header(layout)
             with layout.content:
@@ -627,11 +718,15 @@ class App_Hearth_Helper:
             with layout.drawer as drawer:
                 drawer.width = "40%"
                 vuetify.VDivider(classes="mb-2")
+                with vuetify.VCard() as mainDrawer:
+                    self.server.ui.drawer_main(layout)
+
+
                 with vuetify.VCard() as cardDrawer:
-                    self.server.ui.list_array(layout)
+                    self.server.ui.heart_drawer(layout)
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard() as cardDrawer2:
-                    self.server.ui.charts_type_array(layout)
+                    self.server.ui.results_drawer(layout)
                    
         return layout
     
@@ -646,7 +741,7 @@ class App_Hearth_Helper:
     
 def main():
     app = App_Hearth_Helper()
-    app.server.start(port=8000)
+    app.server.start(port=8080)
 
 if __name__ == "__main__":
     main()
