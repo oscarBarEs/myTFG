@@ -323,16 +323,17 @@ class App_Hearth_Helper:
     def update_drawer_heart(self):
         with self.server.ui.heart_drawer as array_list:
             array_list.clear()
-            if self.currentCase is not None and self.isPage == 1:
-                
-                array_list.clear()
-                vuetify.VCardTitle(
+            if self.isPage == 1:
+                    vuetify.VCardTitle(
                     "Heart Visualization Options", 
                     classes="grey lighten-1 py-1 grey--text text--darken-3",
                     style="user-select: none; cursor: pointer",
                     hide_details=True,
                     dense=True,
                 )
+            if self.currentCase is not None and self.isPage == 1:
+                
+
                 vuetify.VSpacer()
                 with vuetify.VContainer():
                     with vuetify.VRow(classes="right-0"):
@@ -384,10 +385,7 @@ class App_Hearth_Helper:
             #self.server.ui.heart_drawer.clear()
             results_drawer.clear()
 
-
-            if self.data is not None and self.isPage == 2:
-                self.update_data_table() 
-
+            if self.isPage == 2:
                 vuetify.VCardTitle(
                     "Multi Sims results Options", 
                     classes="grey lighten-1 py-1 grey--text text--darken-3",
@@ -395,6 +393,11 @@ class App_Hearth_Helper:
                     hide_details=True,
                     dense=True,
                 )
+
+            if self.data is not None and self.isPage == 2:
+                self.update_data_table() 
+
+
                 chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
                 vuetify.VSelect(
                                 label="Chart Type",
@@ -411,7 +414,7 @@ class App_Hearth_Helper:
         with self.server.ui.drawer_main as drawer_main:
             drawer_main.clear()
 
-            if self.currentCase is not None and  self.isPage == 0:
+            if self.isPage == 0:
                 vuetify.VCardTitle(
                     "Case Info", 
                     classes="grey lighten-1 py-1 grey--text text--darken-3",
@@ -419,6 +422,9 @@ class App_Hearth_Helper:
                     hide_details=True,
                     dense=True,
                 )
+
+            if self.currentCase is not None and  self.isPage == 0:
+
                 vuetify.VSpacer()
                 vuetify.VCardText(children=[self.state.infoCase,])
 
@@ -471,6 +477,7 @@ class App_Hearth_Helper:
 
         vuetify.VDivider(vertical=True, classes="mx-2")
 
+        vuetify.VIcon("mdi-theme-light-dark")
         vuetify.VSwitch(
             v_model="$vuetify.theme.dark",
             hide_details=True,
@@ -603,7 +610,7 @@ class App_Hearth_Helper:
                             key, value = subpart.split(':')
                             data[key.strip()] = value.strip()
                         else:
-                            split_subpart = re.split('(\d.*)', subpart, maxsplit=1)
+                            split_subpart = re.split(r'(\d.*)', subpart, maxsplit=1)
                             if len(split_subpart) > 1:
                                 key = split_subpart[0].strip()
                                 value = split_subpart[1].strip()
@@ -691,7 +698,12 @@ class App_Hearth_Helper:
                 vuetify.VCardTitle("Data from Multi Sim")
                 fig = vega.Figure(classes="justify-left", style="width: 100%", fluid=True)
                 self.ctrl.fig_update = fig.update 
-                vuetify.VSpacer()               
+                vuetify.VSpacer() 
+                 
+                if self.data is not None:
+                    vuetify.VCardText(children=["<h1>"+self.state.name_case+"</h1>" ])
+
+
                 self.server.ui.data_table(dataView)
 
         # --------------------------------------------------------------------------------
@@ -720,14 +732,14 @@ class App_Hearth_Helper:
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard() as mainDrawer:
                     self.server.ui.drawer_main(layout)
-
-
                 with vuetify.VCard() as cardDrawer:
                     self.server.ui.heart_drawer(layout)
                 vuetify.VDivider(classes="mb-2")
                 with vuetify.VCard() as cardDrawer2:
                     self.server.ui.results_drawer(layout)
-                   
+
+            self.update_UI()
+
         return layout
     
 
