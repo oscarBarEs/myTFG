@@ -24,7 +24,7 @@ def table_of_simulation(json_file):
         "dense": True,
         "show_select": True,
         "single_select": False,
-        "item_key": "Id's Reen",
+        "item_key": "idSim",
     }
     return table
 

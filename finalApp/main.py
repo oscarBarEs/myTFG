@@ -194,6 +194,8 @@ class App_Hearth_Helper:
                 self.pl.renderer.actors[pacName].visibility = 0
 
             self.ctrl.view_update()
+            self.update_data_selection()
+
 
 # --------------------------------------------------------------------------------
 # Interactor Pipeline
@@ -278,6 +280,19 @@ class App_Hearth_Helper:
 
 
 
+
+    def update_data_selection(self):
+        with self.server.ui.data_selection as data_selection:
+            data_selection.clear()
+            if self.data is not None:
+                vuetify.VCardText(children=[
+                "<h1 style='text-align: center;'>Selected ", 
+                "<span style='color: blue; font-size: larger;'>", str(len(self.state.selection)), "</span>", 
+                " number of cases from ", 
+                "<span style='color: red; font-size: larger;'>", str(len(self.data)), "</span>", 
+                " total cases.</h1>"],classes="justify-center", style="width: 100%")
+            else:
+                vuetify.VCardText(children=["Select a case to start"])
 
     def update_data_table(self):
             with self.server.ui.data_table as data_table:
@@ -396,6 +411,7 @@ class App_Hearth_Helper:
 
             if self.data is not None and self.isPage == 2:
                 self.update_data_table() 
+                self.update_data_selection()
 
 
                 chartsType = ["Count Segmentos Reen", "Onset/Pacing"]
@@ -699,9 +715,8 @@ class App_Hearth_Helper:
                 fig = vega.Figure(classes="justify-left", style="width: 100%", fluid=True)
                 self.ctrl.fig_update = fig.update 
                 vuetify.VSpacer() 
-                 
-                if self.data is not None:
-                    vuetify.VCardText(children=["<h1>"+self.state.name_case+"</h1>" ])
+                self.server.ui.data_selection(dataView)
+                # vuetify.VCardText(children=["<h1> Casos seleccionados "+self.state.selection+"</h1>" ])
 
 
                 self.server.ui.data_table(dataView)
